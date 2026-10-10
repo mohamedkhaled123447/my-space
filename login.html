@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centered card with the password form. Same tokens as the dashboard. */
+:root {
+  --bg: #f2f4f8; --surface: #ffffff; --line: #dde2ea; --fg: #151b26; --muted: #5f6979;
+  --accent: #2f56e0; --bad: #c4382c;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1218; --surface: #181e27; --line: #283041; --fg: #e7ebf2; --muted: #95a0b3;
+    --accent: #7f9cff; --bad: #f08a7e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1218; --surface: #181e27; --line: #283041; --fg: #e7ebf2; --muted: #95a0b3;
+  --accent: #7f9cff; --bad: #f08a7e; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--f-body); display: grid; place-items: center; min-height: 100vh; padding: 16px; }
+form { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 28px 24px; display: grid; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 20px var(--f-display); }
+.logo { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 15px; }
+p { margin: 0; color: var(--muted); }
+label { display: grid; gap: 6px; font-weight: 500; }
+input { font: inherit; color: inherit; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 10px 12px; outline: none; }
+input:focus { border-color: var(--accent); }
+button { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 10px 12px; background: var(--accent); color: #fff; cursor: pointer; }
+button:disabled { opacity: .6; cursor: default; }
+#msg { color: var(--bad); min-height: 1.5em; font-size: 13px; }
+</style>
+</head>
+<body>
+<form id="form">
+  <div class="brand"><span class="logo">✦</span> My Space</div>
+  <p>Enter your password to open your pages.</p>
+  <label>Password<input type="password" id="pw" autocomplete="current-password" required autofocus></label>
+  <button type="submit" id="go">Sign in</button>
+  <div id="msg" role="alert"></div>
+</form>
+<script>
+const form = document.getElementById("form"), pw = document.getElementById("pw"), go = document.getElementById("go"), msg = document.getElementById("msg");
+// Only same-site paths are allowed as the return address.
+function nextUrl() {
+  const n = new URLSearchParams(location.search).get("next") || "/";
+  return n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : "/";
+}
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  go.disabled = true; msg.textContent = "";
+  try {
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pw.value }) });
+    if (r.ok) { location.replace(nextUrl()); return; }
+    const data = await r.json().catch(() => ({}));
+    msg.textContent = r.status === 401 ? "Wrong password." : data.error || "Sign in failed (HTTP " + r.status + ").";
+  } catch (err) {
+    msg.textContent = "Could not reach the server.";
+  }
+  go.disabled = false; pw.select();
+});
+</script>
+</body>
+</html>

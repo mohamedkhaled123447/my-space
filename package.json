@@ -4,5 +4,8 @@
   "description": "Personal dashboard pages with a small JSON server for their state",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
