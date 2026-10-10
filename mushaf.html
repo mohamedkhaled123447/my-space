@@ -346,8 +346,9 @@ main { max-width: 40rem; margin: 16px auto 0; }
   </div>
 </div>
 
+<script src="store.js"></script>
 <script>
-(() => {
+(async () => {
   "use strict";
   const TOTAL_PAGES = 604;
   const API = (n) => `https://api.alquran.cloud/v1/page/${n}`;
@@ -369,10 +370,13 @@ main { max-width: 40rem; margin: 16px auto 0; }
     themeBtn: $("themeBtn"), settings: $("settings"),
   };
 
-  // ---------- storage (best effort) ----------
+  // ---------- storage (JSON server, see store.js): one "mushaf" document of settings ----------
+  // Nothing is written unless the saved settings loaded, so a server outage can never overwrite them.
+  let saved = {}, loaded = false;
+  try { saved = (await Store.load("mushaf")) || {}; loaded = true; } catch {}
   const store = {
-    get(k, d) { try { const v = localStorage.getItem("hifz:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-    set(k, v) { try { localStorage.setItem("hifz:" + k, JSON.stringify(v)); } catch {} },
+    get(k, d) { return k in saved ? saved[k] : d; },
+    set(k, v) { saved[k] = v; if (loaded) Store.save("mushaf", saved); },
   };
 
   const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";

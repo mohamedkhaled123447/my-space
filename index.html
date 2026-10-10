@@ -184,6 +184,7 @@ body.framed .view { display: flex; }
   </section>
 </div>
 
+<script src="store.js"></script>
 <script>
 const ICONS = {
   book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7"/>',
@@ -200,30 +201,32 @@ const PAGES = [
 const svg = name => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICONS[name] + '</svg>';
 const $ = id => document.getElementById(id);
 
-function readLS(key) {
-  try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
-}
-
-// Stats read from the other pages' saved data (same origin), so they stay in sync.
-function stats() {
+// Stats come from the other pages' saved state on the JSON server, so they stay in sync.
+async function stats() {
   const out = {};
-  const w = readLS("worklist.v1");
+  let all = {};
+  try {
+    const r = await fetch("/api/state", { cache: "no-store" });
+    if (r.ok) all = await r.json();
+  } catch (e) { /* server unreachable: show dashes */ }
+
+  const w = all.worklist;
   if (w && Array.isArray(w.items)) out.worklist = w.items.filter(i => !i.done).length;
 
-  const r = readLS("recalldeck.v1");
+  const r = all.recall;
   if (r && Array.isArray(r.cards)) {
     const d = new Date(), p = n => String(n).padStart(2, "0");
     const today = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
     out.recall = r.cards.filter(c => !c.isNew && c.due && c.due <= today).length;
   }
 
-  const b = readLS("backend-roadmap-tracker-v1");
+  const b = all.roadmap;
   if (b && b.p && b.p.topics) out.roadmap = Object.values(b.p.topics).filter(t => t && t.s === 3).length;
   return out;
 }
 
-function render() {
-  const s = stats();
+async function render() {
+  const s = await stats();
   $("st-tasks").textContent = s.worklist ?? "–";
   $("st-cards").textContent = s.recall ?? "–";
   $("st-road").textContent = s.roadmap ?? "–";
@@ -261,9 +264,8 @@ function route() {
   } else {
     $("frame").removeAttribute("src");
     document.title = "My Space";
-    render();
   }
-  markCurrent();
+  render();
 }
 
 function markCurrent() {
@@ -281,8 +283,7 @@ $("today").textContent = new Date().toLocaleDateString(undefined, { weekday: "lo
 
 // Theme
 const THEMES = ["auto", "light", "dark"];
-let theme = "auto";
-try { theme = localStorage.getItem("myspace:theme") || "auto"; } catch (e) {}
+let theme = "auto", themeLoaded = false;
 function applyTheme() {
   if (theme === "auto") document.documentElement.removeAttribute("data-theme");
   else document.documentElement.setAttribute("data-theme", theme);
@@ -290,7 +291,7 @@ function applyTheme() {
 }
 $("themeBtn").addEventListener("click", () => {
   theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
-  try { localStorage.setItem("myspace:theme", theme); } catch (e) {}
+  if (themeLoaded) Store.save("dashboard", { theme });
   applyTheme();
 });
 
@@ -299,10 +300,12 @@ $("menuBtn").addEventListener("click", () => document.body.classList.add("nav-op
 $("scrim").addEventListener("click", () => document.body.classList.remove("nav-open"));
 
 window.addEventListener("hashchange", route);
-window.addEventListener("storage", () => { if (!document.body.classList.contains("framed")) render(); });
 applyTheme();
-render();
 route();
+Store.load("dashboard").then(v => {
+  themeLoaded = true;
+  if (v && THEMES.includes(v.theme)) { theme = v.theme; applyTheme(); }
+}).catch(() => { /* server unreachable: keep the default theme */ });
 </script>
 </body>
 </html>
