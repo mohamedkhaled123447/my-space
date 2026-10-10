@@ -209,10 +209,7 @@ const $ = id => document.getElementById(id);
 async function stats() {
   const out = {};
   let all = {};
-  try {
-    const r = await fetch("/api/state", { cache: "no-store" });
-    if (r.ok) all = await r.json();
-  } catch (e) { /* server unreachable: show dashes */ }
+  try { all = await Store.loadAll(); } catch (e) { /* server unreachable: show dashes */ }
 
   const pl = all.planner;
   const today = (() => { const d = new Date(), p = n => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); })();
