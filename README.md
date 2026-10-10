@@ -1,6 +1,6 @@
 # My Space
 
-A dashboard (`index.html`) with a sidebar linking to Hifz Mushaf, Worklist, Recall Deck and the Backend Roadmap Tracker.
+A dashboard (`index.html`) with a sidebar linking to Daily Planner, Hifz Mushaf, Worklist, Recall Deck and the Backend Roadmap Tracker.
 
 ## Running
 
@@ -22,4 +22,4 @@ Set `PORT` or `DB_FILE` to change the port or the data file.
 | PUT    | `/api/state/:key` | Replaces a key with the JSON body      |
 | DELETE | `/api/state/:key` | Removes a key                          |
 
-Keys used by the pages: `worklist`, `recall`, `roadmap`, `mushaf`, `dashboard`.
+Keys used by the pages: `planner`, `worklist`, `recall`, `roadmap`, `mushaf`, `dashboard`.

@@ -23,6 +23,7 @@
   --c-work: #2f56e0;
   --c-recall: #d6453d;
   --c-road: #7a4fd1;
+  --c-plan: #c2572b;
   --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
   --side-w: 248px;
@@ -32,7 +33,7 @@
     --bg: #0f1218; --side: #151a22; --surface: #181e27; --line: #283041;
     --fg: #e7ebf2; --muted: #95a0b3; --accent: #7f9cff; --accent-soft: rgba(127, 156, 255, .14);
     --shadow: 0 1px 2px rgba(0, 0, 0, .3);
-    --c-mushaf: #74b6a6; --c-work: #7f9cff; --c-recall: #f08a7e; --c-road: #b597f2;
+    --c-mushaf: #74b6a6; --c-work: #7f9cff; --c-recall: #f08a7e; --c-road: #b597f2; --c-plan: #ec8a5e;
     color-scheme: dark;
   }
 }
@@ -40,7 +41,7 @@
   --bg: #0f1218; --side: #151a22; --surface: #181e27; --line: #283041;
   --fg: #e7ebf2; --muted: #95a0b3; --accent: #7f9cff; --accent-soft: rgba(127, 156, 255, .14);
   --shadow: 0 1px 2px rgba(0, 0, 0, .3);
-  --c-mushaf: #74b6a6; --c-work: #7f9cff; --c-recall: #f08a7e; --c-road: #b597f2;
+  --c-mushaf: #74b6a6; --c-work: #7f9cff; --c-recall: #f08a7e; --c-road: #b597f2; --c-plan: #ec8a5e;
   color-scheme: dark;
 }
 
@@ -163,6 +164,7 @@ body.framed .view { display: flex; }
     <p class="sub" id="today"></p>
 
     <div class="stats">
+      <div class="stat"><small>Today's plan</small><b id="st-plan">–</b></div>
       <div class="stat"><small>Open tasks</small><b id="st-tasks">–</b></div>
       <div class="stat"><small>Cards due today</small><b id="st-cards">–</b></div>
       <div class="stat"><small>Roadmap topics done</small><b id="st-road">–</b></div>
@@ -190,9 +192,11 @@ const ICONS = {
   book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7"/>',
   check: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/>',
   cards: '<rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v12"/>',
+  calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h4M7 17h7"/>',
   route: '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8a3 3 0 0 0 0-6H8a3 3 0 0 1 0-6h8"/>'
 };
 const PAGES = [
+  { id: "planner", title: "Daily Planner", file: "Daily Planner.html", icon: "calendar", color: "var(--c-plan)", desc: "Priorities, tasks and an hourly schedule for each day." },
   { id: "mushaf", title: "Hifz Mushaf", file: "mushaf.html", icon: "book", color: "var(--c-mushaf)", desc: "Read and memorize the Quran page by page." },
   { id: "worklist", title: "Worklist", file: "Worklist.html", icon: "check", color: "var(--c-work)", desc: "Tasks grouped by when they're due." },
   { id: "recall", title: "Recall Deck", file: "Recall Deck.html", icon: "cards", color: "var(--c-recall)", desc: "Spaced-repetition flashcards." },
@@ -210,13 +214,16 @@ async function stats() {
     if (r.ok) all = await r.json();
   } catch (e) { /* server unreachable: show dashes */ }
 
+  const pl = all.planner;
+  const today = (() => { const d = new Date(), p = n => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); })();
+  const pd = pl && pl.days && pl.days[today];
+  if (pl) out.planner = pd && Array.isArray(pd.tasks) ? { done: pd.tasks.filter(t => t.done).length, total: pd.tasks.length } : { done: 0, total: 0 };
+
   const w = all.worklist;
   if (w && Array.isArray(w.items)) out.worklist = w.items.filter(i => !i.done).length;
 
   const r = all.recall;
   if (r && Array.isArray(r.cards)) {
-    const d = new Date(), p = n => String(n).padStart(2, "0");
-    const today = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
     out.recall = r.cards.filter(c => !c.isNew && c.due && c.due <= today).length;
   }
 
@@ -227,11 +234,13 @@ async function stats() {
 
 async function render() {
   const s = await stats();
+  $("st-plan").textContent = s.planner ? s.planner.done + "/" + s.planner.total : "–";
   $("st-tasks").textContent = s.worklist ?? "–";
   $("st-cards").textContent = s.recall ?? "–";
   $("st-road").textContent = s.roadmap ?? "–";
 
   const meta = {
+    planner: s.planner ? (s.planner.total ? s.planner.done + " of " + s.planner.total + " done today" : "Nothing planned today") : "",
     worklist: s.worklist != null ? s.worklist + " open" : "",
     recall: s.recall != null ? s.recall + " due" : "",
     roadmap: s.roadmap != null ? s.roadmap + " done" : ""
