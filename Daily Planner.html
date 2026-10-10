@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: a header with date navigation, then two columns — priorities, tasks and notes on the left, an hourly schedule on the right. One column on phones. */
+:root {
+  --bg: #f4f2ee;
+  --surface: #ffffff;
+  --surface2: #f0ede7;
+  --line: #e0dbd2;
+  --fg: #1c1a17;
+  --muted: #6e675c;
+  --accent: #c2572b;
+  --accent-soft: rgba(194, 87, 43, .1);
+  --ok: #2e8a57;
+  --now: rgba(194, 87, 43, .08);
+  --shadow: 0 1px 2px rgba(28, 26, 23, .05), 0 4px 16px rgba(28, 26, 23, .04);
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12110f; --surface: #1b1a17; --surface2: #23211d; --line: #34312b;
+    --fg: #ece7de; --muted: #a39b8d; --accent: #ec8a5e; --accent-soft: rgba(236, 138, 94, .14);
+    --ok: #63c48d; --now: rgba(236, 138, 94, .1); --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12110f; --surface: #1b1a17; --surface2: #23211d; --line: #34312b;
+  --fg: #ece7de; --muted: #a39b8d; --accent: #ec8a5e; --accent-soft: rgba(236, 138, 94, .14);
+  --ok: #63c48d; --now: rgba(236, 138, 94, .1); --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--f-body); }
+button, input, textarea, select { font: inherit; color: inherit; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
+
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; }
+.title { flex: 1; min-width: 200px; }
+.title h1 { margin: 0; font: 700 26px/1.15 var(--f-display); }
+.title p { margin: 2px 0 0; color: var(--muted); }
+.nav { display: flex; gap: 6px; align-items: center; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+  padding: 7px 12px; cursor: pointer; font-size: 13px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: .5; cursor: default; border-color: var(--line); color: inherit; }
+.btn svg { width: 16px; height: 16px; }
+.btn.icon { padding: 7px 9px; }
+input[type="date"].btn { padding: 6px 10px; }
+#sync { font-size: 12px; color: var(--muted); }
+#sync.warn { color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+.col { display: grid; gap: 18px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); min-width: 0; }
+.panel h2 { margin: 0 0 12px; font: 600 16px var(--f-display); display: flex; align-items: center; gap: 8px; }
+.panel h2 .count { margin-left: auto; font: 500 12px var(--f-body); color: var(--muted); }
+
+/* Progress */
+.progress { display: flex; align-items: center; gap: 12px; }
+.bar { flex: 1; height: 8px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 4px; transition: width .25s ease; }
+.progress b { font: 700 18px var(--f-display); font-variant-numeric: tabular-nums; min-width: 3.5ch; text-align: right; }
+
+/* Priorities */
+.prio { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.prio li { display: flex; align-items: center; gap: 10px; }
+.prio .num { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--f-display); background: var(--accent-soft); color: var(--accent); flex: none; }
+
+/* Checkbox + text rows */
+.check { appearance: none; width: 20px; height: 20px; border: 1.5px solid var(--line); border-radius: 6px; cursor: pointer; flex: none; display: grid; place-items: center; background: var(--surface); margin: 0; }
+.check:checked { background: var(--ok); border-color: var(--ok); }
+.check:checked::after { content: ""; width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+.line-in { flex: 1; min-width: 0; border: 0; border-bottom: 1px solid transparent; background: transparent; padding: 5px 2px; outline: none; }
+.line-in:focus { border-bottom-color: var(--accent); }
+.line-in::placeholder { color: var(--muted); opacity: .7; }
+.done .line-in, .done > .txt { text-decoration: line-through; color: var(--muted); }
+
+/* Tasks */
+.add { display: flex; gap: 8px; margin-bottom: 10px; }
+.add input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface2); border-radius: 8px; padding: 8px 10px; outline: none; }
+.add input:focus { border-color: var(--accent); }
+.tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.tasks li { display: flex; align-items: center; gap: 10px; padding: 4px 2px; border-radius: 8px; }
+.tasks li:hover { background: var(--surface2); }
+.del { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 6px; opacity: 0; }
+.tasks li:hover .del, .del:focus { opacity: 1; }
+.del:hover { color: var(--accent); }
+@media (hover: none) { .del { opacity: 1; } }
+.empty { color: var(--muted); font-size: 13px; padding: 6px 2px; margin: 0; }
+.row-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+textarea.notes { width: 100%; min-height: 120px; resize: vertical; border: 1px solid var(--line); background: var(--surface2); border-radius: 8px; padding: 10px; outline: none; }
+textarea.notes:focus { border-color: var(--accent); }
+
+/* Mood */
+.mood { display: flex; gap: 6px; flex-wrap: wrap; }
+.mood button { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 6px 10px; cursor: pointer; font-size: 18px; line-height: 1; }
+.mood button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Schedule */
+.sched-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.sched-head h2 { margin: 0; flex: 1; }
+.sched-head label { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+.sched-head select { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 3px 4px; font-size: 12px; }
+.slots { list-style: none; margin: 0; padding: 0; }
+.slots li { display: flex; align-items: stretch; border-top: 1px solid var(--line); }
+.slots li:first-child { border-top: 0; }
+.slots time { width: 64px; flex: none; padding: 9px 0; font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.slots .line-in { padding: 9px 4px; }
+.slots li.now { background: var(--now); border-radius: 8px; border-top-color: transparent; }
+.slots li.now + li { border-top-color: transparent; }
+.slots li.now time { color: var(--accent); font-weight: 600; padding-left: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">
+      <h1 id="dayName">Today</h1>
+      <p id="dayDate"></p>
+    </div>
+    <div class="nav">
+      <button class="btn icon" id="prev" type="button" aria-label="Previous day">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <input class="btn" type="date" id="pick" aria-label="Pick a date">
+      <button class="btn icon" id="next" type="button" aria-label="Next day">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+      <button class="btn" id="todayBtn" type="button">Today</button>
+      <button class="btn" id="themeBtn" type="button" title="Theme">Auto</button>
+    </div>
+    <span id="sync" role="status">Loading…</span>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel">
+        <h2>Day progress <span class="count" id="progText"></span></h2>
+        <div class="progress"><div class="bar"><span id="progBar"></span></div><b id="progPct">0%</b></div>
+      </section>
+
+      <section class="panel">
+        <h2>Top 3 priorities</h2>
+        <ol class="prio" id="prio"></ol>
+      </section>
+
+      <section class="panel">
+        <h2>Tasks <span class="count" id="taskCount"></span></h2>
+        <form class="add" id="addForm">
+          <input id="addText" placeholder="Add a task and press Enter" maxlength="200" autocomplete="off">
+          <button class="btn" type="submit">Add</button>
+        </form>
+        <ul class="tasks" id="tasks"></ul>
+        <div class="row-actions">
+          <button class="btn" id="carryBtn" type="button">Bring over unfinished from yesterday</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Notes &amp; reflection</h2>
+        <textarea class="notes" id="notes" placeholder="What went well? What would you change tomorrow?"></textarea>
+        <h2 style="margin-top:14px">Mood</h2>
+        <div class="mood" id="mood"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="sched-head">
+        <h2>Schedule</h2>
+        <label>From <select id="startHour"></select></label>
+        <label>to <select id="endHour"></select></label>
+      </div>
+      <ul class="slots" id="slots"></ul>
+    </section>
+  </div>
+</div>
+
+<script src="store.js"></script>
+<script>
+(() => {
+  "use strict";
+  // Saved on the JSON server (see store.js) under "planner":
+  // { days: { "YYYY-MM-DD": { prio: [..3], tasks: [{id,text,done}], slots: {"07": "..."}, notes, mood } }, prefs: { start, end, theme } }
+  const STORE_KEY = "planner";
+  const MOODS = ["😞", "😕", "😐", "🙂", "😄"];
+  const THEMES = ["auto", "light", "dark"];
+  const $ = (id) => document.getElementById(id);
+
+  let data = { days: {}, prefs: { start: 6, end: 22, theme: "auto" } };
+  let loaded = false;
+  let current = todayKey();
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function dayKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function todayKey() { return dayKey(new Date()); }
+  function keyToDate(k) { const p = k.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function addDays(k, n) { const d = keyToDate(k); d.setDate(d.getDate() + n); return dayKey(d); }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function hourLabel(h) { return h === 0 || h === 24 ? "12 AM" : h === 12 ? "12 PM" : h < 12 ? h + " AM" : (h - 12) + " PM"; }
+
+  function day(k) {
+    return data.days[k] || { prio: ["", "", ""], tasks: [], slots: {}, notes: "", mood: null };
+  }
+  // Days are only stored once something is written, so browsing ahead doesn't fill the file with empty days.
+  function editDay() {
+    if (!data.days[current]) data.days[current] = day(current);
+    return data.days[current];
+  }
+  function isEmpty(d) {
+    return !d.prio.some(Boolean) && !d.tasks.length && !Object.values(d.slots).some(Boolean) && !d.notes && d.mood == null;
+  }
+  function save() {
+    if (!loaded) return;
+    const d = data.days[current];
+    if (d && isEmpty(d)) delete data.days[current];
+    Store.save(STORE_KEY, data);
+  }
+
+  Store.onStatus((s) => {
+    const el = $("sync");
+    el.classList.toggle("warn", s === "error");
+    el.textContent = s === "saving" ? "Saving…" : s === "saved" ? "Saved to server" : "Server unreachable — retrying";
+  });
+
+  // ---------- render ----------
+  function renderHeader() {
+    const d = keyToDate(current), t = todayKey();
+    $("dayName").textContent = current === t ? "Today" : current === addDays(t, -1) ? "Yesterday" : current === addDays(t, 1) ? "Tomorrow" : d.toLocaleDateString(undefined, { weekday: "long" });
+    $("dayDate").textContent = d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    $("pick").value = current;
+    $("todayBtn").disabled = current === t;
+  }
+
+  function renderProgress() {
+    const d = day(current);
+    const items = d.tasks.length;
+    const done = d.tasks.filter((x) => x.done).length;
+    const pct = items ? Math.round((done / items) * 100) : 0;
+    $("progBar").style.width = pct + "%";
+    $("progPct").textContent = pct + "%";
+    $("progText").textContent = items ? done + " of " + items + " tasks done" : "No tasks yet";
+    $("taskCount").textContent = items ? (items - done) + " left" : "";
+  }
+
+  function renderPrio() {
+    const d = day(current);
+    const ol = $("prio");
+    ol.innerHTML = "";
+    for (let i = 0; i < 3; i++) {
+      const li = document.createElement("li");
+      li.innerHTML = '<span class="num">' + (i + 1) + '</span>';
+      const input = document.createElement("input");
+      input.className = "line-in";
+      input.maxLength = 140;
+      input.placeholder = ["The one thing that makes today a win", "Second most important", "Third"][i];
+      input.value = d.prio[i] || "";
+      input.setAttribute("aria-label", "Priority " + (i + 1));
+      input.oninput = () => { editDay().prio[i] = input.value; save(); };
+      li.appendChild(input);
+      ol.appendChild(li);
+    }
+  }
+
+  function renderTasks() {
+    const d = day(current);
+    const ul = $("tasks");
+    ul.innerHTML = "";
+    if (!d.tasks.length) {
+      const p = document.createElement("p");
+      p.className = "empty";
+      p.textContent = "Nothing planned yet.";
+      ul.appendChild(p);
+    }
+    d.tasks.forEach((t) => {
+      const li = document.createElement("li");
+      if (t.done) li.className = "done";
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.className = "check"; cb.checked = t.done;
+      cb.setAttribute("aria-label", "Done");
+      cb.onchange = () => { t.done = cb.checked; li.classList.toggle("done", t.done); save(); renderProgress(); };
+      const input = document.createElement("input");
+      input.className = "line-in"; input.value = t.text; input.maxLength = 200;
+      input.setAttribute("aria-label", "Task");
+      input.oninput = () => { t.text = input.value; save(); };
+      input.onblur = () => { if (!t.text.trim()) removeTask(t.id); };
+      const del = document.createElement("button");
+      del.type = "button"; del.className = "del"; del.textContent = "×";
+      del.setAttribute("aria-label", "Delete task");
+      del.onclick = () => removeTask(t.id);
+      li.append(cb, input, del);
+      ul.appendChild(li);
+    });
+    const prev = day(addDays(current, -1)).tasks.filter((t) => !t.done);
+    $("carryBtn").hidden = !prev.length;
+    $("carryBtn").textContent = "Bring over " + prev.length + " unfinished from the day before";
+    renderProgress();
+  }
+
+  function removeTask(id) {
+    const d = editDay();
+    d.tasks = d.tasks.filter((t) => t.id !== id);
+    save(); renderTasks();
+  }
+
+  function renderNotes() {
+    const d = day(current);
+    $("notes").value = d.notes || "";
+    const m = $("mood");
+    m.innerHTML = "";
+    MOODS.forEach((e, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = e;
+      b.setAttribute("aria-pressed", String(d.mood === i));
+      b.setAttribute("aria-label", "Mood " + (i + 1) + " of 5");
+      b.onclick = () => { const dd = editDay(); dd.mood = dd.mood === i ? null : i; save(); renderNotes(); };
+      m.appendChild(b);
+    });
+  }
+
+  function renderSchedule() {
+    const d = day(current);
+    const { start, end } = data.prefs;
+    const now = new Date();
+    const isToday = current === todayKey();
+    const ul = $("slots");
+    ul.innerHTML = "";
+    for (let h = start; h < end; h++) {
+      const key = pad(h);
+      const li = document.createElement("li");
+      if (isToday && now.getHours() === h) li.className = "now";
+      const time = document.createElement("time");
+      time.textContent = hourLabel(h);
+      const input = document.createElement("input");
+      input.className = "line-in"; input.maxLength = 160;
+      input.value = d.slots[key] || "";
+      input.setAttribute("aria-label", hourLabel(h));
+      input.oninput = () => {
+        const dd = editDay();
+        if (input.value) dd.slots[key] = input.value; else delete dd.slots[key];
+        save();
+      };
+      li.append(time, input);
+      ul.appendChild(li);
+    }
+  }
+
+  function renderHourPickers() {
+    const s = $("startHour"), e = $("endHour");
+    s.innerHTML = ""; e.innerHTML = "";
+    for (let h = 0; h <= 23; h++) s.add(new Option(hourLabel(h), h, false, h === data.prefs.start));
+    for (let h = 1; h <= 24; h++) e.add(new Option(hourLabel(h), h, false, h === data.prefs.end));
+  }
+
+  function renderAll() {
+    renderHeader(); renderPrio(); renderTasks(); renderNotes(); renderSchedule();
+  }
+
+  function go(k) { current = k; renderAll(); }
+
+  // ---------- events ----------
+  $("prev").onclick = () => go(addDays(current, -1));
+  $("next").onclick = () => go(addDays(current, 1));
+  $("todayBtn").onclick = () => go(todayKey());
+  $("pick").onchange = () => { if ($("pick").value) go($("pick").value); };
+
+  $("addForm").onsubmit = (e) => {
+    e.preventDefault();
+    const text = $("addText").value.trim();
+    if (!text) return;
+    editDay().tasks.push({ id: uid(), text, done: false });
+    $("addText").value = "";
+    save(); renderTasks();
+  };
+
+  $("carryBtn").onclick = () => {
+    const prevKey = addDays(current, -1);
+    const prev = data.days[prevKey];
+    if (!prev) return;
+    const moving = prev.tasks.filter((t) => !t.done);
+    editDay().tasks.push(...moving.map((t) => ({ id: uid(), text: t.text, done: false })));
+    prev.tasks = prev.tasks.filter((t) => t.done);
+    if (isEmpty(prev)) delete data.days[prevKey];
+    save(); renderTasks();
+  };
+
+  $("notes").oninput = () => { editDay().notes = $("notes").value; save(); };
+
+  $("startHour").onchange = $("endHour").onchange = () => {
+    let s = +$("startHour").value, e = +$("endHour").value;
+    if (e <= s) e = Math.min(24, s + 1);
+    data.prefs.start = s; data.prefs.end = e;
+    renderHourPickers(); renderSchedule(); save();
+  };
+
+  function applyTheme() {
+    const t = data.prefs.theme || "auto";
+    if (t === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", t);
+    $("themeBtn").textContent = t[0].toUpperCase() + t.slice(1);
+  }
+  $("themeBtn").onclick = () => {
+    data.prefs.theme = THEMES[(THEMES.indexOf(data.prefs.theme || "auto") + 1) % THEMES.length];
+    applyTheme(); save();
+  };
+
+  // Keep the "now" highlight and the Today label right when the page stays open, without rebuilding inputs.
+  let lastToday = todayKey();
+  setInterval(() => {
+    if (todayKey() !== lastToday) { lastToday = todayKey(); renderHeader(); }
+    const isToday = current === todayKey(), h = new Date().getHours();
+    $("slots").querySelectorAll("li").forEach((li, i) => li.classList.toggle("now", isToday && data.prefs.start + i === h));
+  }, 60 * 1000);
+
+  // ---------- boot ----------
+  Store.load(STORE_KEY).then((v) => {
+    if (v && v.days) data.days = v.days;
+    if (v && v.prefs) Object.assign(data.prefs, v.prefs);
+    loaded = true;
+    $("sync").textContent = "Saved to server";
+  }).catch(() => {
+    $("sync").textContent = "Server unreachable — changes won't be saved";
+    $("sync").classList.add("warn");
+  }).then(() => { applyTheme(); renderHourPickers(); renderAll(); });
+})();
+</script>
+</body>
+</html>

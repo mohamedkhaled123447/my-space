@@ -226,6 +226,7 @@ textarea.in { resize: vertical; }
   </header>
   <main id="main"></main>
 </div>
+<script src="store.js"></script>
 <script>
 /* ===== ROADMAP DATA =====
    Row format: Category|Topic|What to learn[|hours]
@@ -852,7 +853,7 @@ const ORIGINAL_COUNTS = { '1': 33, '2': 17, '3': 15, '4': 13, '5': 12, '6': 28, 
 const STAT = ['Not started', 'Learning', 'Practicing', 'Done'];
 const REVIEW_DAYS = [3, 10, 30, 90];
 const LOG_KINDS = ['Study', 'Build', 'DSA', 'Review', 'Reading'];
-const LS_KEY = 'backend-roadmap-tracker-v1';
+const STORE_KEY = 'roadmap';
 const S = {
   p: { topics: {}, caps: {}, cfg: { start: '', hpw: 15, skip: false }, u: 0 },
   l: { entries: [], u: 0 }
@@ -922,82 +923,28 @@ function normL(d) {
   if (d) l.u = +d.u || 0;
   return l;
 }
-function lsLoad() { try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch (e) { return null; } }
-function lsSave() { try { localStorage.setItem(LS_KEY, JSON.stringify({ p: S.p, l: S.l })); } catch (e) { /* storage unavailable */ } }
-function hasData(k) { return k === 'p' ? (Object.keys(S.p.topics).length + Object.keys(S.p.caps).length) > 0 : S.l.entries.length > 0; }
 
-let refs = null;
-const dirty = { p: false, l: false };
-let timer = null;
-let busy = false;
+// Saved on the JSON server (see store.js) as one document: { p: progress, l: log }.
+// Nothing is written until the saved data has loaded, so a server outage can never overwrite it.
+let loaded = false;
 
 function setSave(state) {
   ui.saveState = state;
   const el = $('savechip');
   if (!el) return;
   const map = {
-    loading: ['Connecting…', 'wait'], cloud: ['Saved to your account', 'ok'], saving: ['Saving…', 'wait'],
-    local: ['Saved on this device only', 'warn'], error: ['Cloud save failed, kept on this device', 'warn']
+    loading: ['Connecting…', 'wait'], saved: ['Saved to server', 'ok'], saving: ['Saving…', 'wait'],
+    error: ['Server unreachable, retrying', 'warn'], offline: ['Server unreachable, not saving', 'warn']
   };
-  const m = map[state] || map.local;
+  const m = map[state] || map.offline;
   el.textContent = m[0];
   el.setAttribute('data-k', m[1]);
 }
+Store.onStatus(setSave);
 function touch(k) {
-  dirty[k] = true;
   S[k].u = Date.now();
-  lsSave();
-  if (!refs) { setSave('local'); return; }
-  setSave('saving');
-  clearTimeout(timer);
-  timer = setTimeout(flush, 700);
+  if (loaded) Store.save(STORE_KEY, { p: S.p, l: S.l });
 }
-async function flush() {
-  if (!refs) return;
-  if (busy) { timer = setTimeout(flush, 400); return; }
-  busy = true;
-  try {
-    const keys = ['p', 'l'];
-    for (let i = 0; i < keys.length; i++) {
-      const k = keys[i];
-      if (dirty[k]) {
-        dirty[k] = false;
-        try { await refs[k].set(JSON.parse(JSON.stringify(S[k]))); } catch (e) { dirty[k] = true; throw e; }
-      }
-    }
-    setSave('cloud');
-  } catch (e) {
-    setSave('error');
-    if (e && e.code === 'unavailable') { clearTimeout(timer); timer = setTimeout(flush, 8000); }
-  } finally { busy = false; }
-}
-async function pull(first) {
-  const r = await Promise.all([refs.p.get(), refs.l.get()]);
-  let changed = false;
-  const rp = r[0].exists ? r[0].data() : null;
-  const rl = r[1].exists ? r[1].data() : null;
-  if (rp && (+rp.u || 0) > (S.p.u || 0)) { S.p = normP(rp); changed = true; }
-  else if (first && hasData('p') && (!rp || (S.p.u || 0) > (+rp.u || 0))) dirty.p = true;
-  if (rl && (+rl.u || 0) > (S.l.u || 0)) { S.l = normL(rl); changed = true; }
-  else if (first && hasData('l') && (!rl || (S.l.u || 0) > (+rl.u || 0))) dirty.l = true;
-  if (changed) { lsSave(); render(); }
-  if (dirty.p || dirty.l) flush(); else setSave('cloud');
-}
-async function initDb() {
-  try {
-    if (!window.claude || !window.claude.use) { setSave('local'); return; }
-    const got = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
-    const db = got[0], user = got[1];
-    const id = user ? await user.id() : null;
-    if (!db || !id) { setSave('local'); return; }
-    refs = { p: db.doc('data/users/' + id + '/progress'), l: db.doc('data/users/' + id + '/log') };
-    await pull(true);
-    document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible' && refs && !dirty.p && !dirty.l && !busy) pull(false).catch(function () { });
-    });
-  } catch (e) { refs = null; setSave('local'); }
-}
-
 /* ===== MODEL HELPERS ===== */
 function rec(id) { return S.p.topics[id] || (S.p.topics[id] = { s: 0 }); }
 function peek(id) { return S.p.topics[id] || { s: 0 }; }
@@ -1532,7 +1479,7 @@ function viewData() {
   const root = h('div', { class: 'view' });
   root.appendChild(h('section', { class: 'panel' },
     h('h3', null, 'Where your progress lives'),
-    h('p', { class: 'sub', text: ui.saveState === 'cloud' ? 'Saved to your account and also cached on this device. Open the page on another device and it loads the same progress.' : 'Saved on this device in this browser. If you open the page signed in to Claude, progress also saves to your account.' })));
+    h('p', { class: 'sub', text: ui.saveState === 'offline' ? 'The server could not be reached when this page loaded, so changes are not being saved. Start the server and reload.' : 'Saved on the JSON server, so every browser that opens this page loads the same progress.' })));
 
   root.appendChild(h('section', { class: 'panel' },
     h('h3', null, 'How completion works'),
@@ -1546,11 +1493,13 @@ function viewData() {
   const exp = h('button', {
     type: 'button', class: 'btn primary', onclick: async function () {
       try {
-        const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
-        if (!dl) { msg.textContent = 'Saving files is not available in this view. Copy the backup text below instead.'; $('data-text').hidden = false; $('data-text').value = JSON.stringify({ p: S.p, l: S.l }); return; }
-        await dl.save({ filename: 'backend-roadmap-progress-' + todayStr() + '.json', data: JSON.stringify({ app: 'backend-roadmap-tracker', v: 1, p: S.p, l: S.l }, null, 1) });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: 'backend-roadmap-tracker', v: 1, p: S.p, l: S.l }, null, 1)], { type: 'application/json' }));
+        a.download = 'backend-roadmap-progress-' + todayStr() + '.json';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
         msg.textContent = 'Backup saved.';
-      } catch (e) { msg.textContent = e && e.code === 'declined' ? 'Backup cancelled.' : 'Could not save the backup here.'; }
+      } catch (e) { msg.textContent = 'Could not save the backup here.'; }
     }
   }, 'Export backup (JSON)');
   const file = h('input', { id: 'imp-file', type: 'file', accept: '.json,application/json', class: 'in', 'aria-label': 'Choose backup file' });
@@ -1582,7 +1531,7 @@ function viewData() {
         type: 'button', class: 'btn danger', onclick: function () {
           if (c.kind === 'import') { S.p = normP(c.data.p); S.l = normL(c.data.l); }
           else { S.p = normP({ cfg: S.p.cfg }); S.l = normL(null); }
-          dirty.p = true; dirty.l = true; touch('p'); touch('l'); ui.confirm = null; ui.open.clear(); render();
+          touch('p'); touch('l'); ui.confirm = null; ui.open.clear(); render();
         }
       }, c.kind === 'import' ? 'Yes, replace everything' : 'Yes, erase everything'),
       h('button', { type: 'button', class: 'btn', onclick: function () { ui.confirm = null; render(); } }, 'Cancel')));
@@ -1620,14 +1569,15 @@ function render() {
 }
 
 /* ===== BOOT ===== */
-(function boot() {
-  const saved = lsLoad();
+(async function boot() {
+  try { const hsh = location.hash.replace('#', ''); if (TABS.some(function (x) { return x[0] === hsh; })) ui.tab = hsh; } catch (e) { /* no hash */ }
+  let saved = null;
+  try { saved = await Store.load(STORE_KEY); loaded = true; } catch (e) { /* server unreachable */ }
   if (saved) { S.p = normP(saved.p); S.l = normL(saved.l); }
   else S.p = normP(null);
   if (!S.p.cfg.start) S.p.cfg.start = nextMonday();
-  try { const hsh = location.hash.replace('#', ''); if (TABS.some(function (x) { return x[0] === hsh; })) ui.tab = hsh; } catch (e) { /* no hash */ }
   render();
-  initDb();
+  setSave(loaded ? 'saved' : 'offline');
 })();
 </script>
 

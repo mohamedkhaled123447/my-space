@@ -175,6 +175,7 @@ textarea{resize:vertical;min-height:84px}
   <p class="note" id="save-note"></p>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
+<script src="store.js"></script>
 <script>
 /* ---- Scheduler. Pure functions, no DOM. Every rule comes from a config object. ---- */
 var DAY_MS = 86400000;
@@ -262,96 +263,62 @@ function buildQueue(cards, today, deck, cfg, newSeenToday, reviewedToday){
   return due.concat(fresh);
 }
 if (typeof module !== 'undefined') module.exports = { schedule: schedule, addDays: addDays, dayKey: dayKey, diffDays: diffDays, buildQueue: buildQueue, newCard: newCard, fmtDays: fmtDays, mergeCfg: mergeCfg, parseLadder: parseLadder, DEFAULT_CFG: DEFAULT_CFG };
-/* ---- Storage: private per-person db when available, browser storage otherwise. ---- */
-var LS_KEY = 'recalldeck.v1';
-var S = { cards: [], stats: { days: {} }, prefs: { deck: '*', newDay: '', newCount: 0 }, cfg: mergeCfg(), backend: 'local', col: null, ready: false };
+/* ---- Storage: the JSON server (see store.js), one document for the whole deck. ---- */
+var STORE_KEY = 'recall';
+var S = { cards: [], stats: { days: {} }, prefs: { deck: '*', newDay: '', newCount: 0 }, cfg: mergeCfg(), loaded: false };
 function readCfg(o){
   if (o && o.cfg) return mergeCfg(o.cfg);
   return mergeCfg(o && typeof o.newLimit === 'number' ? { newLimit: o.newLimit } : null);
 }
-var chain = Promise.resolve();
 var $ = function(id){ return document.getElementById(id); };
 
-function loadLocal(){
-  try {
-    var raw = localStorage.getItem(LS_KEY);
-    if (!raw) return;
-    var o = JSON.parse(raw);
-    if (Array.isArray(o.cards)) S.cards = o.cards;
-    if (o.stats && o.stats.days) S.stats = o.stats;
-    if (o.prefs) S.prefs = Object.assign(S.prefs, o.prefs);
-    S.cfg = readCfg(o.cfg ? o : o.prefs);
-  } catch (e) {}
-}
-function saveLocal(){
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ cards: S.cards, stats: S.stats, prefs: S.prefs, cfg: S.cfg })); }
-  catch (e) { setSaveNote('This browser blocked saving. Export a backup from the Cards tab to keep your deck.', true); }
+function applySaved(o){
+  if (!o) return;
+  if (Array.isArray(o.cards)) S.cards = o.cards;
+  if (o.stats && o.stats.days) S.stats = o.stats;
+  if (o.prefs) S.prefs = Object.assign(S.prefs, o.prefs);
+  S.cfg = readCfg(o.cfg ? o : o.prefs);
 }
 function setSaveNote(msg, warn){
   var n = $('save-note'); if (!n) return;
   n.textContent = msg; n.className = 'note' + (warn ? ' warn' : '');
 }
-function describeBackend(){
-  if (S.backend === 'db') setSaveNote('Saved to your private deck. It follows you across devices and stays hidden from everyone else.');
-  else setSaveNote('Saved in this browser only. Use Export backup on the Cards tab to keep a copy.');
+Store.onStatus(function(s){
+  if (s === 'error') setSaveNote('The server could not be reached. Your changes will be saved once it is back.', true);
+  else if (s === 'saved') setSaveNote('Saved to the server.');
+});
+// Nothing is written until the saved deck has loaded, so a server outage can never overwrite it.
+function persist(){
+  if (!S.loaded) return;
+  Store.save(STORE_KEY, { cards: S.cards, stats: S.stats, prefs: S.prefs, cfg: S.cfg });
 }
-function persist(kind, id, data){
-  if (S.backend !== 'db'){ saveLocal(); return; }
-  chain = chain.then(function(){
-    var ref = S.col.doc(id);
-    return kind === 'delete' ? ref.delete() : ref.set(data);
-  }).catch(function(e){
-    if (e && e.code === 'quota_exceeded') setSaveNote('Your deck storage is full. Delete some cards or export a backup.', true);
-    else setSaveNote('A change could not be saved. Check your connection and reload before closing this page.', true);
-  });
-}
-function saveCard(c){ persist('set', c.id, c); }
-function saveStats(){ persist('set', 'stats', Object.assign({ type: 'stats' }, S.stats)); }
-function savePrefs(){ persist('set', 'prefs', Object.assign({ type: 'prefs' }, S.prefs, { cfg: S.cfg })); }
+function saveCard(){ persist(); }
+function saveStats(){ persist(); }
+function savePrefs(){ persist(); }
 function removeCard(id){
   S.cards = S.cards.filter(function(c){ return c.id !== id; });
-  persist('delete', id);
+  persist();
 }
-
-async function connectDb(onLoaded){
-  try {
-    if (typeof claude === 'undefined' || !claude.use) return;
-    var db = await claude.use('db');
-    var user = await claude.use('user');
-    if (!db || !user) return;
-    var uid = await user.id();
-    if (!uid) return;
-    var col = db.collection('data/users/' + uid);
-    var snap = await col.get();
-    var cards = [], stats = null, prefs = null;
-    snap.docs.forEach(function(d){
-      var v = d.data(); if (!v) return;
-      if (v.type === 'card') cards.push(Object.assign({}, v));
-      else if (v.type === 'stats') stats = { days: v.days || {} };
-      else if (v.type === 'prefs') prefs = v;
-    });
-    S.col = col; S.backend = 'db';
-    S.cards = cards;
-    S.stats = stats || { days: {} };
-    if (prefs){
-      S.cfg = readCfg(prefs);
-      S.prefs = { deck: prefs.deck || '*', newDay: prefs.newDay || '', newCount: prefs.newCount || 0 };
-    }
-    describeBackend();
+function loadDeck(onLoaded){
+  setSaveNote('Loading your deck…');
+  Store.load(STORE_KEY).then(function(o){
+    applySaved(o);
+    S.loaded = true;
+    setSaveNote('Saved to the server.');
     onLoaded();
-  } catch (e) {
-    setSaveNote('Could not reach your private deck, so this session is saved in the browser only.', true);
-  }
+  }).catch(function(){
+    setSaveNote('Could not reach the server, so changes in this session will not be saved. Reload once it is running.', true);
+  });
 }
 
 function exportBackup(){
   var payload = JSON.stringify({ app: 'recall-deck', version: 1, exported: dayKey(), cards: S.cards, stats: S.stats, prefs: S.prefs, cfg: S.cfg }, null, 2);
-  claude.use('downloads').then(function(dl){
-    if (!dl) { toast('Saving files is not available in this view.'); return; }
-    return dl.save({ filename: 'recall-deck-' + dayKey() + '.json', data: payload })
-      .then(function(){ toast('Backup saved.'); })
-      .catch(function(e){ if (!e || e.code !== 'declined') toast('Backup could not be saved here.'); });
-  }).catch(function(){ toast('Saving files is not available in this view.'); });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
+  a.download = 'recall-deck-' + dayKey() + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  toast('Backup saved.');
 }
 function importBackup(file, done){
   var r = new FileReader();
@@ -781,8 +748,8 @@ document.addEventListener('change', function(e){
 });
 /* ---- Boot ---- */
 Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(b){ b.onclick = function(){ showView(b.dataset.view); }; });
-loadLocal(); applyTheme(); describeBackend(); startSession(); renderAll(); setupGen();
-connectDb(function(){ applyTheme(); R.startedKey = ''; renderAll(); if (!$('view-settings').hidden) renderSettings(); });
+applyTheme(); startSession(); renderAll(); setupGen();
+loadDeck(function(){ applyTheme(); R.startedKey = ''; renderAll(); if (!$('view-settings').hidden) renderSettings(); });
 </script>
 
 </body></html>

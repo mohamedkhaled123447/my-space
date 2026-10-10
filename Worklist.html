@@ -241,16 +241,17 @@ kbd { font: 500 11px var(--font-mono); border: 1px solid var(--line); border-bot
   <div class="groups" id="groups"></div>
 
   <footer>
-    <span class="sync" id="sync"><i></i><span id="sync-text">Saved on this device</span></span>
+    <span class="sync" id="sync"><i></i><span id="sync-text">Loading…</span></span>
     <span><kbd>N</kbd> new task · <kbd>Enter</kbd> add · double-click to edit</span>
   </footer>
 </div>
 
 <div class="toast" id="toast" role="status"><span id="toast-text"></span><button type="button" id="toast-undo">Undo</button></div>
 
+<script src="store.js"></script>
 <script>
 (() => {
-  const LS_KEY = "worklist.v1";
+  const STORE_KEY = "worklist";
   const $ = (id) => document.getElementById(id);
   const DAY = 86400000;
 
@@ -297,78 +298,19 @@ kbd { font: 500 11px var(--font-mono); border: 1px solid var(--line); border-bot
   let editingId = null;
   let lastRemoved = null;
 
-  function readLocal() {
-    try { const raw = localStorage.getItem(LS_KEY); if (raw) { const v = JSON.parse(raw); if (Array.isArray(v.items)) return v.items; } } catch (e) {}
-    return null;
-  }
-  function writeLocal() {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ items })); } catch (e) {}
-  }
-
-  // ---------- cloud sync (private to each signed-in person) ----------
-  let ref = null, dirty = false, writing = false, saveTimer = null;
-  function setSync(cloud, text) {
-    $("sync").classList.toggle("cloud", cloud);
+  // ---------- storage (JSON server, see store.js) ----------
+  function setSync(ok, text) {
+    $("sync").classList.toggle("cloud", ok);
     $("sync-text").textContent = text;
   }
-  function save() {
-    writeLocal();
-    if (!ref) return;
-    dirty = true;
-    setSync(true, "Saving…");
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(flush, 500);
-  }
-  async function flush() {
-    if (!ref || writing) return;
-    writing = true;
-    while (dirty) {
-      dirty = false;
-      try { await ref.set({ items: JSON.parse(JSON.stringify(items)), updated: Date.now() }); }
-      catch (e) {
-        if (e && (e.code === "invalid_argument" || e.code === "revoked" || e.code === "not_granted")) {
-          ref = null; setSync(false, "Saved on this device"); break;
-        }
-        if (e && e.code === "quota_exceeded") { setSync(false, "Account storage full — saved on this device"); break; }
-        await new Promise(r => setTimeout(r, 800 + Math.random() * 800));
-        dirty = true;
-      }
-    }
-    writing = false;
-    if (ref) setSync(true, "Synced to your account");
-  }
-
-  async function connect() {
-    if (!window.claude || !window.claude.use) return;
-    try {
-      const [user, db] = await Promise.all([window.claude.use("user"), window.claude.use("db")]);
-      if (!user || !db) return;
-      const id = await user.id();
-      if (!id) return;
-      const r = db.doc("data/users/" + id + "/worklist");
-      let first = true;
-      ref = r;
-      setSync(true, "Connecting…");
-      r.onSnapshot((snap) => {
-        if (first) {
-          first = false;
-          if (!snap.exists) {
-            // New account store: carry over anything the person already added on this device.
-            if (items.some(t => !t.ex)) { save(); } else setSync(true, "Synced to your account");
-            return;
-          }
-        }
-        if (dirty || writing || !snap.exists) return;
-        const data = snap.data();
-        if (data && Array.isArray(data.items)) {
-          items = JSON.parse(JSON.stringify(data.items));
-          writeLocal();
-          if (!editingId) render();
-        }
-        setSync(true, "Synced to your account");
-      }, () => { ref = null; setSync(false, "Saved on this device"); });
-    } catch (e) { ref = null; }
-  }
+  Store.onStatus((s) => {
+    if (s === "saving") setSync(true, "Saving…");
+    else if (s === "saved") setSync(true, "Saved to server");
+    else setSync(false, "Server unreachable — retrying");
+  });
+  // Nothing is written until the saved list has loaded, so a server outage can never overwrite it.
+  let loaded = false;
+  function save() { if (loaded) Store.save(STORE_KEY, { items }); }
 
   // ---------- actions ----------
   function addTask(text, due, pri) {
@@ -581,9 +523,15 @@ kbd { font: 500 11px var(--font-mono); border: 1px solid var(--line); border-bot
   document.addEventListener("visibilitychange", () => { if (!document.hidden && !editingId) render(); });
 
   // ---------- boot ----------
-  items = readLocal() || exampleItems();
-  render();
-  connect();
+  setSync(false, "Loading…");
+  Store.load(STORE_KEY).then((v) => {
+    loaded = true;
+    items = v && Array.isArray(v.items) ? v.items : exampleItems();
+    setSync(true, "Saved to server");
+  }).catch(() => {
+    items = exampleItems();
+    setSync(false, "Server unreachable — changes won't be saved");
+  }).then(render);
 })();
 </script>
 
