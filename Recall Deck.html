@@ -1,0 +1,788 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Recall Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centered column, three views (Review, Cards, Progress). The review card is an index card: red top rule, blue ruled lines. */
+:root{
+  --bg:#e9edf2; --surface:#fbfcfd; --ink:#15202e; --ink-2:#4a5868; --line:#cfd7e0;
+  --accent:#2447c8; --accent-ink:#ffffff; --margin:#d6453d; --good:#1f8a5b; --warn:#a96a10; --bad:#bf3a30; --hi:#fff0a0;
+  --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --f-body:'Instrument Sans','Segoe UI',system-ui,sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10151c; --surface:#18202a; --ink:#e8edf3; --ink-2:#9aa8b8; --line:#2b3644;
+    --accent:#86a2ff; --accent-ink:#0c1226; --margin:#ef6b62; --good:#4fc58d; --warn:#e0b050; --bad:#ef7a6e; --hi:#4d4510;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#18202a; --ink:#e8edf3; --ink-2:#9aa8b8; --line:#2b3644;
+  --accent:#86a2ff; --accent-ink:#0c1226; --margin:#ef6b62; --good:#4fc58d; --warn:#e0b050; --bad:#ef7a6e; --hi:#4d4510;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:760px;margin-inline:auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;line-height:1.15}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-family:var(--f-display);font-weight:700;font-size:1.5rem;letter-spacing:-.01em}
+.brand small{font-family:var(--f-mono);font-weight:400;font-size:.72rem;color:var(--ink-2);margin-left:8px;letter-spacing:.04em;text-transform:uppercase}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tab{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-weight:600;color:var(--ink-2)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tab .n{font-family:var(--f-mono);font-size:.75rem;margin-left:6px;opacity:.85}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row.between{justify-content:space-between}
+.btn{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:8px;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad)}
+.btn.small{padding:5px 10px;font-size:.85rem}
+.btn[disabled]{opacity:.5;cursor:default}
+label.fld{display:flex;flex-direction:column;gap:5px;font-size:.8rem;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;min-width:0}
+input[type=text],select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:15px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink)}
+textarea{resize:vertical;min-height:84px}
+/* review */
+.session{display:flex;flex-direction:column;gap:14px}
+.meter{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.85rem;color:var(--ink-2)}
+.meter b{color:var(--ink);font-family:var(--f-mono);font-weight:500}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+.index-card{position:relative;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--margin);border-radius:6px 6px 12px 12px;padding:18px 20px 22px;min-height:230px;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--line) 31px,var(--line) 32px);background-position:0 44px;box-shadow:0 1px 0 var(--line)}
+.index-card .tag{position:absolute;top:10px;right:14px;font-family:var(--f-mono);font-size:.7rem;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em}
+.face-label{font-family:var(--f-mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-2);margin-bottom:6px;height:20px}
+.face{font-family:var(--f-display);font-size:1.35rem;line-height:32px;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
+.face.back{font-family:var(--f-body);font-size:1.05rem;font-weight:500}
+.mine{margin-top:14px;padding:8px 10px;background:var(--hi);border-radius:6px;font-size:.92rem;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.mine small{display:block;font-family:var(--f-mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;opacity:.7}
+.recall{display:flex;flex-direction:column;gap:8px}
+.grades{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.grade{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-weight:600}
+.grade small{font-family:var(--f-mono);font-weight:400;font-size:.72rem;color:var(--ink-2)}
+.grade kbd{font-family:var(--f-mono);font-size:.68rem;color:var(--ink-2)}
+.grade.g1{border-bottom:3px solid var(--bad)} .grade.g2{border-bottom:3px solid var(--warn)}
+.grade.g3{border-bottom:3px solid var(--good)} .grade.g4{border-bottom:3px solid var(--accent)}
+.grade:hover{border-color:var(--ink-2)}
+.empty{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0}
+.empty h2{font-size:1.35rem}
+.hint{font-size:.82rem;color:var(--ink-2)}
+/* cards list */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.list{display:flex;flex-direction:column}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:11px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .q{font-weight:600;overflow-wrap:anywhere}
+.item .a{color:var(--ink-2);overflow-wrap:anywhere;font-size:.9rem}
+.item .meta{font-family:var(--f-mono);font-size:.72rem;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:4px 12px;grid-column:1/-1}
+.pill{font-family:var(--f-mono);font-size:.7rem;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--ink-2)}
+.pill.due{border-color:var(--accent);color:var(--accent)}
+.gen{display:none;flex-direction:column;gap:10px;margin-top:14px;border-top:1px dashed var(--line);padding-top:14px}
+.gen.on{display:flex}
+.pick{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start;font-size:.9rem}
+/* progress */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.stat b{display:block;font-family:var(--f-display);font-size:1.7rem;line-height:1.1}
+.stat span{font-size:.78rem;color:var(--ink-2)}
+.chart{width:100%;overflow-x:auto}
+.chart svg{display:block;min-width:340px;width:100%;height:auto}
+.note{font-size:.8rem;color:var(--ink-2)}
+.note.warn{color:var(--warn)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:9px;font-size:.88rem;max-width:calc(100vw - 32px);z-index:9}
+.tabs{max-width:100%;overflow-x:auto}
+.tab{white-space:nowrap}
+.chk{display:flex;gap:10px;align-items:center;font-weight:500;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+@media (max-width:520px){
+  .grid2{grid-template-columns:1fr}
+  .grades{grid-template-columns:repeat(2,1fr)}
+  .index-card{padding-inline:14px}
+}
+@media (prefers-reduced-motion:reduce){.bar>i{transition:none}}
+</style>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Recall Deck<small>active recall · spaced repetition</small></div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" id="tab-review" data-view="review" aria-selected="true">Review<span class="n" id="n-due">0</span></button>
+      <button class="tab" role="tab" id="tab-cards" data-view="cards" aria-selected="false">Cards<span class="n" id="n-all">0</span></button>
+      <button class="tab" role="tab" id="tab-stats" data-view="stats" aria-selected="false">Progress</button>
+      <button class="tab" role="tab" id="tab-settings" data-view="settings" aria-selected="false">Settings</button>
+    </nav>
+  </header>
+
+  <section id="view-review" aria-labelledby="tab-review">
+    <div class="panel session" id="review-panel"></div>
+  </section>
+
+  <section id="view-cards" aria-labelledby="tab-cards" hidden>
+    <div class="wrap" style="gap:14px">
+      <div class="panel">
+        <h2 style="font-size:1.15rem;margin-bottom:12px">Add a card</h2>
+        <form id="add-form" class="wrap" style="gap:12px">
+          <div class="grid2">
+            <label class="fld" for="f-front">Question (front)<textarea id="f-front" required placeholder="What does the Ebbinghaus forgetting curve describe?"></textarea></label>
+            <label class="fld" for="f-back">Answer (back)<textarea id="f-back" required placeholder="How memory retention drops over time without review."></textarea></label>
+          </div>
+          <div class="row between">
+            <label class="fld" for="f-deck" style="flex:1;min-width:180px">Deck<input type="text" id="f-deck" list="deck-list" value="General" maxlength="40"><datalist id="deck-list"></datalist></label>
+            <button class="btn primary" type="submit">Add card</button>
+          </div>
+        </form>
+        <div class="row" style="margin-top:14px;gap:8px">
+          <button class="btn small" type="button" id="btn-gen-toggle" hidden>Make cards from my notes</button>
+          <button class="btn small" type="button" id="btn-export">Export backup</button>
+          <label class="btn small" for="f-import" style="cursor:pointer">Import backup</label>
+          <input type="file" id="f-import" accept="application/json,.json" hidden>
+        </div>
+        <div class="gen" id="gen-box">
+          <label class="fld" for="f-notes">Paste your notes<textarea id="f-notes" style="min-height:120px" placeholder="Paste a paragraph or a list of facts. Claude drafts question and answer cards you can review before adding."></textarea></label>
+          <div class="row"><button class="btn primary small" type="button" id="btn-gen">Draft cards</button><span class="note" id="gen-status"></span></div>
+          <div id="gen-out" class="wrap" style="gap:8px"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row between" style="margin-bottom:10px">
+          <h2 style="font-size:1.15rem">Library</h2>
+          <label class="fld" for="f-filter" style="width:200px;max-width:100%">Deck filter<select id="f-filter"></select></label>
+        </div>
+        <div class="list" id="card-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-stats" aria-labelledby="tab-stats" hidden>
+    <div class="wrap" style="gap:14px">
+      <div class="panel" id="stats-panel"></div>
+    </div>
+  </section>
+
+  <section id="view-settings" aria-labelledby="tab-settings" hidden>
+    <div class="wrap" style="gap:14px" id="settings-root"></div>
+  </section>
+
+  <p class="note" id="save-note"></p>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+<script>
+/* ---- Scheduler. Pure functions, no DOM. Every rule comes from a config object. ---- */
+var DAY_MS = 86400000;
+var DEFAULT_CFG = {
+  mode: 'sm2', ladder: '1,3,7,14,30,60,120,240',
+  startEase: 2.5, minEase: 1.3, againPenalty: 0.2, hardPenalty: 0.15, easyEaseBonus: 0.15,
+  goodFirst: 1, goodSecond: 3, easyFirst: 4, easySecond: 7, hardFirst: 1,
+  hardMult: 1.2, easyMult: 1.3, intervalMult: 1, maxInterval: 365,
+  lapseInterval: 0, lapseRequeue: true,
+  newLimit: 10, maxReviews: 0, newOrder: 'added', reviewOrder: 'overdue',
+  recallBox: true, aheadSize: 10, rollover: 0, theme: 'auto'
+};
+function mergeCfg(c){ var o = {}, k; for (k in DEFAULT_CFG) o[k] = DEFAULT_CFG[k]; if (c) for (k in c) if (k in DEFAULT_CFG && c[k] !== undefined && c[k] !== null) o[k] = c[k]; return o; }
+function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+function dayKey(d){ d = d || new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function keyToDate(k){ var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function addDays(k, n){ var d = keyToDate(k); d.setDate(d.getDate() + n); return dayKey(d); }
+function diffDays(a, b){ return Math.round((keyToDate(a) - keyToDate(b)) / DAY_MS); }
+function parseLadder(s){
+  var a = String(s == null ? '' : s).split(/[\s,;]+/).map(function(x){ return Math.round(parseFloat(x)); })
+    .filter(function(x){ return x > 0 && isFinite(x); });
+  return a.length ? a : parseLadder(DEFAULT_CFG.ladder);
+}
+function clampInterval(n, cfg){
+  n = Math.round(n * (cfg.intervalMult > 0 ? cfg.intervalMult : 1));
+  return Math.max(1, Math.min(cfg.maxInterval > 0 ? cfg.maxInterval : 36500, n));
+}
+/* grade: 1 Again, 2 Hard, 3 Good, 4 Easy. Returns the next state; never mutates c. */
+function schedule(c, grade, today, cfg){
+  cfg = cfg || DEFAULT_CFG;
+  var ease = typeof c.ease === 'number' ? c.ease : cfg.startEase;
+  var reps = c.reps || 0, lapses = c.lapses || 0, iv = c.interval || 0, next;
+  if (grade === 1){
+    var li = Math.max(0, Math.round(cfg.lapseInterval));
+    return { ease: Math.max(cfg.minEase, ease - cfg.againPenalty), reps: 0, lapses: lapses + 1, interval: li, due: addDays(today, li), last: today };
+  }
+  if (cfg.mode === 'ladder'){
+    var L = parseLadder(cfg.ladder), last = L.length - 1, nreps;
+    if (grade === 2){ next = L[Math.min(Math.max(reps - 1, 0), last)]; nreps = reps; }
+    else if (grade === 3){ next = L[Math.min(reps, last)]; nreps = reps + 1; }
+    else { next = L[Math.min(reps + 1, last)]; nreps = reps + 2; }
+    next = clampInterval(next, cfg);
+    return { ease: ease, reps: nreps, lapses: lapses, interval: next, due: addDays(today, next), last: today };
+  }
+  if (grade === 2){
+    ease = Math.max(cfg.minEase, ease - cfg.hardPenalty);
+    next = reps === 0 ? cfg.hardFirst : Math.max(iv + 1, Math.round(iv * cfg.hardMult));
+  } else if (grade === 3){
+    next = reps === 0 ? cfg.goodFirst : reps === 1 ? cfg.goodSecond : Math.max(iv + 1, Math.round(iv * ease));
+  } else {
+    ease = ease + cfg.easyEaseBonus;
+    next = reps === 0 ? cfg.easyFirst : reps === 1 ? cfg.easySecond : Math.max(iv + 2, Math.round(iv * ease * cfg.easyMult));
+  }
+  next = clampInterval(next, cfg);
+  return { ease: ease, reps: reps + 1, lapses: lapses, interval: next, due: addDays(today, next), last: today };
+}
+function fmtDays(n){
+  if (n < 1) return 'today';
+  if (n < 30) return n + 'd';
+  if (n < 365) return Math.round(n / 30) + 'mo';
+  return (Math.round(n / 36.5) / 10) + 'y';
+}
+function previewInterval(c, grade, today, cfg){
+  var s = schedule(c, grade, today, cfg);
+  return s.interval < 1 ? (grade === 1 ? 'again today' : 'today') : fmtDays(s.interval);
+}
+function newCard(front, back, deck, today, cfg){
+  return { id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), type: 'card',
+    front: front, back: back, deck: deck || 'General', ease: (cfg || DEFAULT_CFG).startEase, interval: 0, reps: 0, lapses: 0,
+    due: today, last: null, created: today, isNew: true };
+}
+function isDue(c, today){ return c.due <= today; }
+function shuffle(a){ a = a.slice(); for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+/* Queue: due learned cards, then new cards up to the daily limit. */
+function buildQueue(cards, today, deck, cfg, newSeenToday, reviewedToday){
+  cfg = cfg || DEFAULT_CFG;
+  var inDeck = cards.filter(function(c){ return !deck || deck === '*' || c.deck === deck; });
+  var due = inDeck.filter(function(c){ return !c.isNew && isDue(c, today); });
+  due = cfg.reviewOrder === 'random' ? shuffle(due) : due.sort(function(a, b){ return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
+  if (cfg.maxReviews > 0) due = due.slice(0, Math.max(0, cfg.maxReviews - (reviewedToday || 0)));
+  var fresh = inDeck.filter(function(c){ return c.isNew; });
+  if (cfg.newOrder === 'random') fresh = shuffle(fresh);
+  else if (cfg.newOrder === 'newest') fresh = fresh.slice().reverse();
+  fresh = fresh.slice(0, Math.max(0, cfg.newLimit - (newSeenToday || 0)));
+  return due.concat(fresh);
+}
+if (typeof module !== 'undefined') module.exports = { schedule: schedule, addDays: addDays, dayKey: dayKey, diffDays: diffDays, buildQueue: buildQueue, newCard: newCard, fmtDays: fmtDays, mergeCfg: mergeCfg, parseLadder: parseLadder, DEFAULT_CFG: DEFAULT_CFG };
+/* ---- Storage: private per-person db when available, browser storage otherwise. ---- */
+var LS_KEY = 'recalldeck.v1';
+var S = { cards: [], stats: { days: {} }, prefs: { deck: '*', newDay: '', newCount: 0 }, cfg: mergeCfg(), backend: 'local', col: null, ready: false };
+function readCfg(o){
+  if (o && o.cfg) return mergeCfg(o.cfg);
+  return mergeCfg(o && typeof o.newLimit === 'number' ? { newLimit: o.newLimit } : null);
+}
+var chain = Promise.resolve();
+var $ = function(id){ return document.getElementById(id); };
+
+function loadLocal(){
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    var o = JSON.parse(raw);
+    if (Array.isArray(o.cards)) S.cards = o.cards;
+    if (o.stats && o.stats.days) S.stats = o.stats;
+    if (o.prefs) S.prefs = Object.assign(S.prefs, o.prefs);
+    S.cfg = readCfg(o.cfg ? o : o.prefs);
+  } catch (e) {}
+}
+function saveLocal(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ cards: S.cards, stats: S.stats, prefs: S.prefs, cfg: S.cfg })); }
+  catch (e) { setSaveNote('This browser blocked saving. Export a backup from the Cards tab to keep your deck.', true); }
+}
+function setSaveNote(msg, warn){
+  var n = $('save-note'); if (!n) return;
+  n.textContent = msg; n.className = 'note' + (warn ? ' warn' : '');
+}
+function describeBackend(){
+  if (S.backend === 'db') setSaveNote('Saved to your private deck. It follows you across devices and stays hidden from everyone else.');
+  else setSaveNote('Saved in this browser only. Use Export backup on the Cards tab to keep a copy.');
+}
+function persist(kind, id, data){
+  if (S.backend !== 'db'){ saveLocal(); return; }
+  chain = chain.then(function(){
+    var ref = S.col.doc(id);
+    return kind === 'delete' ? ref.delete() : ref.set(data);
+  }).catch(function(e){
+    if (e && e.code === 'quota_exceeded') setSaveNote('Your deck storage is full. Delete some cards or export a backup.', true);
+    else setSaveNote('A change could not be saved. Check your connection and reload before closing this page.', true);
+  });
+}
+function saveCard(c){ persist('set', c.id, c); }
+function saveStats(){ persist('set', 'stats', Object.assign({ type: 'stats' }, S.stats)); }
+function savePrefs(){ persist('set', 'prefs', Object.assign({ type: 'prefs' }, S.prefs, { cfg: S.cfg })); }
+function removeCard(id){
+  S.cards = S.cards.filter(function(c){ return c.id !== id; });
+  persist('delete', id);
+}
+
+async function connectDb(onLoaded){
+  try {
+    if (typeof claude === 'undefined' || !claude.use) return;
+    var db = await claude.use('db');
+    var user = await claude.use('user');
+    if (!db || !user) return;
+    var uid = await user.id();
+    if (!uid) return;
+    var col = db.collection('data/users/' + uid);
+    var snap = await col.get();
+    var cards = [], stats = null, prefs = null;
+    snap.docs.forEach(function(d){
+      var v = d.data(); if (!v) return;
+      if (v.type === 'card') cards.push(Object.assign({}, v));
+      else if (v.type === 'stats') stats = { days: v.days || {} };
+      else if (v.type === 'prefs') prefs = v;
+    });
+    S.col = col; S.backend = 'db';
+    S.cards = cards;
+    S.stats = stats || { days: {} };
+    if (prefs){
+      S.cfg = readCfg(prefs);
+      S.prefs = { deck: prefs.deck || '*', newDay: prefs.newDay || '', newCount: prefs.newCount || 0 };
+    }
+    describeBackend();
+    onLoaded();
+  } catch (e) {
+    setSaveNote('Could not reach your private deck, so this session is saved in the browser only.', true);
+  }
+}
+
+function exportBackup(){
+  var payload = JSON.stringify({ app: 'recall-deck', version: 1, exported: dayKey(), cards: S.cards, stats: S.stats, prefs: S.prefs, cfg: S.cfg }, null, 2);
+  claude.use('downloads').then(function(dl){
+    if (!dl) { toast('Saving files is not available in this view.'); return; }
+    return dl.save({ filename: 'recall-deck-' + dayKey() + '.json', data: payload })
+      .then(function(){ toast('Backup saved.'); })
+      .catch(function(e){ if (!e || e.code !== 'declined') toast('Backup could not be saved here.'); });
+  }).catch(function(){ toast('Saving files is not available in this view.'); });
+}
+function importBackup(file, done){
+  var r = new FileReader();
+  r.onload = function(){
+    try {
+      var o = JSON.parse(String(r.result)), have = {}, added = 0;
+      S.cards.forEach(function(c){ have[c.id] = 1; });
+      (o.cards || []).forEach(function(c){
+        if (!c || typeof c.front !== 'string' || typeof c.back !== 'string' || !c.id || have[c.id]) return;
+        var card = Object.assign(newCard(c.front, c.back, c.deck, todayKey(), S.cfg), c, { type: 'card' });
+        S.cards.push(card); saveCard(card); added++;
+      });
+      if (o.stats && o.stats.days){
+        Object.keys(o.stats.days).forEach(function(k){ if (!S.stats.days[k]) S.stats.days[k] = o.stats.days[k]; });
+        saveStats();
+      }
+      toast(added + ' card' + (added === 1 ? '' : 's') + ' imported.');
+      done();
+    } catch (e) { toast('That file is not a Recall Deck backup.'); }
+  };
+  r.readAsText(file);
+}
+var toastTimer;
+function toast(msg){
+  var t = $('toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.hidden = true; }, 2600);
+}
+/* ---- Review session (active recall) ---- */
+var R = { queue: [], idx: 0, revealed: false, typed: '', total: 0, done: 0, startedKey: '' };
+
+function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function todayKey(){ return dayKey(new Date(Date.now() - (S.cfg.rollover || 0) * 3600000)); }
+function newSeenToday(){ return S.prefs.newDay === todayKey() ? (S.prefs.newCount || 0) : 0; }
+function decks(){
+  var m = {}; S.cards.forEach(function(c){ m[c.deck || 'General'] = 1; });
+  return Object.keys(m).sort();
+}
+function dueCount(){
+  var t = todayKey();
+  return buildQueue(S.cards, t, '*', S.cfg, newSeenToday(), reviewedToday()).length;
+}
+function startSession(){
+  var t = todayKey();
+  R.queue = buildQueue(S.cards, t, S.prefs.deck, S.cfg, newSeenToday(), reviewedToday());
+  R.idx = 0; R.revealed = false; R.typed = ''; R.total = R.queue.length; R.done = 0; R.startedKey = t;
+}
+function reviewedToday(){ var d = S.stats.days[todayKey()]; return d ? d.n : 0; }
+
+function renderReview(){
+  var p = $('review-panel'), t = todayKey();
+  $('n-due').textContent = dueCount();
+  $('n-all').textContent = S.cards.length;
+  if (!S.cards.length){ p.innerHTML = emptyHtml(); wireEmpty(); return; }
+  if (R.startedKey !== t) startSession();
+  var deckOpts = '<option value="*">All decks</option>' + decks().map(function(d){
+    return '<option value="' + esc(d) + '"' + (S.prefs.deck === d ? ' selected' : '') + '>' + esc(d) + '</option>'; }).join('');
+  var head = '<div class="row between"><label class="fld" for="r-deck" style="width:200px;max-width:100%">Deck<select id="r-deck">' + deckOpts + '</select></label>' +
+    '<div class="meter"><span>Left <b>' + Math.max(0, R.queue.length - R.idx) + '</b></span><span>Done today <b>' + reviewedToday() + '</b></span></div></div>';
+  if (R.idx >= R.queue.length){
+    var next = nextDueInfo();
+    p.innerHTML = head + '<div class="empty"><h2>' + (R.total ? 'Session complete' : 'Nothing due right now') + '</h2>' +
+      '<p class="muted" style="margin:0;max-width:44ch">' + esc(next) + '</p>' +
+      '<div class="row" style="justify-content:center"><button class="btn primary" id="r-more">Study ahead</button><button class="btn" id="r-add">Add cards</button></div>' +
+      '<p class="hint" style="margin:0">Studying ahead reviews cards before they are due. It is fine, but it adds less to long-term memory than waiting.</p></div>';
+    $('r-deck').onchange = onDeck;
+    $('r-add').onclick = function(){ showView('cards'); };
+    $('r-more').onclick = studyAhead;
+    return;
+  }
+  var c = R.queue[R.idx], pct = R.total ? Math.round((R.done / R.total) * 100) : 0;
+  var state = c.isNew ? 'new' : (!c.interval ? 'relearn' : 'review');
+  var html = head + '<div class="bar" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
+    '<div class="index-card"><span class="tag">' + esc(c.deck) + ' · ' + state + '</span>' +
+    '<div class="face-label">Question</div><div class="face" id="r-front">' + esc(c.front) + '</div>';
+  if (R.revealed){
+    html += '<div class="face-label" style="margin-top:14px">Answer</div><div class="face back">' + esc(c.back) + '</div>';
+    if (R.typed.trim()) html += '<div class="mine"><small>What you wrote</small>' + esc(R.typed) + '</div>';
+  }
+  html += '</div>';
+  if (!R.revealed){
+    html += '<div class="recall">' + (S.cfg.recallBox
+      ? '<label class="fld" for="r-typed">Recall it first. Type what you remember, or just think it through.<textarea id="r-typed" placeholder="Your answer from memory"></textarea></label>'
+      : '<div class="hint">Say the answer to yourself before you reveal it.</div>') +
+      '<div class="row between"><span class="hint">' + (S.cfg.recallBox ? 'Press Ctrl+Enter to reveal.' : 'Press Space to reveal.') + '</span><button class="btn primary" id="r-reveal">Show answer</button></div></div>';
+  } else {
+    html += '<div><div class="hint" style="margin-bottom:8px">Compare honestly, then rate how well you recalled it.</div><div class="grades">';
+    [['1', 'Again'], ['2', 'Hard'], ['3', 'Good'], ['4', 'Easy']].forEach(function(g){
+      html += '<button class="grade g' + g[0] + '" data-g="' + g[0] + '">' + g[1] + '<small>' + previewInterval(c, +g[0], t, S.cfg) + '</small><kbd>key ' + g[0] + '</kbd></button>';
+    });
+    html += '</div></div>';
+  }
+  p.innerHTML = html;
+  $('r-deck').onchange = onDeck;
+  if (!R.revealed){
+    var ta = $('r-typed');
+    if (ta){
+      ta.value = R.typed;
+      ta.oninput = function(){ R.typed = ta.value; };
+      ta.onkeydown = function(e){ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); reveal(); } };
+      if (!isTouch()) ta.focus({ preventScroll: true });
+    }
+    $('r-reveal').onclick = reveal;
+  } else {
+    Array.prototype.forEach.call(p.querySelectorAll('.grade'), function(b){ b.onclick = function(){ grade(+b.dataset.g); }; });
+  }
+}
+function isTouch(){ try { return window.matchMedia('(pointer:coarse)').matches; } catch (e) { return false; } }
+function onDeck(e){ S.prefs.deck = e.target.value; savePrefs(); startSession(); renderReview(); }
+function reveal(){ R.revealed = true; renderReview(); }
+
+function grade(g){
+  var c = R.queue[R.idx]; if (!c || !R.revealed) return;
+  var t = todayKey(), wasNew = c.isNew;
+  var n = schedule(c, g, t, S.cfg);
+  Object.assign(c, n, { isNew: false });
+  saveCard(c);
+  var day = S.stats.days[t] || (S.stats.days[t] = { n: 0, ok: 0 });
+  day.n += 1; if (g >= 3) day.ok += 1;
+  saveStats();
+  if (wasNew){
+    if (S.prefs.newDay !== t){ S.prefs.newDay = t; S.prefs.newCount = 0; }
+    S.prefs.newCount += 1; savePrefs();
+  }
+  var requeue = g === 1 && S.cfg.lapseRequeue && n.due <= t;
+  if (requeue){ R.queue.push(c); R.total += 1; } else { R.done += 1; }
+  R.idx += 1; R.revealed = false; R.typed = '';
+  renderReview();
+}
+function nextDueInfo(){
+  var t = todayKey(), future = S.cards.filter(function(c){ return !c.isNew && c.due > t; })
+    .sort(function(a, b){ return a.due < b.due ? -1 : 1; });
+  var waitingNew = S.cards.filter(function(c){ return c.isNew; }).length;
+  var parts = [];
+  if (reviewedToday()) parts.push('You reviewed ' + reviewedToday() + ' card' + (reviewedToday() === 1 ? '' : 's') + ' today.');
+  if (future.length){
+    var d = diffDays(future[0].due, t);
+    parts.push('Next review ' + (d === 1 ? 'tomorrow' : 'in ' + d + ' days') + ' (' + future.filter(function(c){ return c.due === future[0].due; }).length + ' card' + (future.filter(function(c){ return c.due === future[0].due; }).length === 1 ? '' : 's') + ').');
+  }
+  if (waitingNew && newSeenToday() >= S.cfg.newLimit) parts.push(waitingNew + ' new card' + (waitingNew === 1 ? ' is' : 's are') + ' waiting for tomorrow (daily limit ' + S.cfg.newLimit + ').');
+  return parts.join(' ') || 'Add some cards to begin.';
+}
+function studyAhead(){
+  var t = todayKey();
+  var pool = S.cards.filter(function(c){ return (S.prefs.deck === '*' || c.deck === S.prefs.deck) && (c.isNew || c.due > t); })
+    .sort(function(a, b){ return a.due < b.due ? -1 : 1; }).slice(0, Math.max(1, S.cfg.aheadSize));
+  if (!pool.length){ toast('No more cards in this deck.'); return; }
+  R.queue = pool; R.idx = 0; R.revealed = false; R.typed = ''; R.total = pool.length; R.done = 0;
+  renderReview();
+}
+function emptyHtml(){
+  return '<div class="empty"><h2>Your deck is empty</h2><p class="muted" style="margin:0;max-width:46ch">Each review shows a question, asks you to recall the answer before you see it, then schedules the card to return just before you would forget it.</p>' +
+    '<div class="index-card" style="width:100%;max-width:420px;text-align:left;min-height:150px"><span class="tag">example</span><div class="face-label">Question</div><div class="face" style="font-size:1.1rem">Why does spacing reviews out beat cramming?</div></div>' +
+    '<div class="row" style="justify-content:center"><button class="btn primary" id="e-add">Add your first card</button><button class="btn" id="e-demo">Add 6 example cards</button></div></div>';
+}
+function wireEmpty(){
+  $('e-add').onclick = function(){ showView('cards'); setTimeout(function(){ $('f-front').focus(); }, 0); };
+  $('e-demo').onclick = function(){
+    var t = todayKey();
+    [['What does the spacing effect say?', 'Reviews spread over time produce stronger long-term memory than the same time spent in one session.'],
+     ['What is active recall?', 'Retrieving an answer from memory before checking it, instead of rereading.'],
+     ['Why grade Again when you miss a card?', 'It resets the interval so the card comes back soon, while the gap is short enough to relearn it.'],
+     ['What does the forgetting curve describe?', 'How quickly retention falls after learning when nothing is reviewed.'],
+     ['What is an ease factor?', 'A per-card multiplier. Each successful review multiplies the interval by it; hard cards get a lower one.'],
+     ['When is the best moment to review a card?', 'Just before you would forget it, when retrieval takes effort but still succeeds.']
+    ].forEach(function(p){ var c = newCard(p[0], p[1], 'Examples', t, S.cfg); S.cards.push(c); saveCard(c); });
+    startSession(); renderAll(); toast('Example cards added to the Examples deck.');
+  };
+}
+document.addEventListener('keydown', function(e){
+  if (e.target && /^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName)) return;
+  if ($('view-review').hidden) return;
+  if (R.revealed && e.key >= '1' && e.key <= '4'){ grade(+e.key); }
+  else if (!R.revealed && (e.key === ' ' || e.key === 'Enter') && R.queue[R.idx]){ e.preventDefault(); reveal(); }
+});
+/* ---- Cards view, progress view, note-to-cards, boot ---- */
+var editingId = null, filterDeck = '*';
+
+function showView(v){
+  ['review', 'cards', 'stats', 'settings'].forEach(function(n){
+    $('view-' + n).hidden = n !== v;
+    $('tab-' + n).setAttribute('aria-selected', n === v ? 'true' : 'false');
+  });
+  if (v === 'settings') renderSettings();
+  if (v === 'stats') renderStats();
+  if (v === 'cards') renderCards();
+  if (v === 'review') renderReview();
+}
+function renderAll(){ renderReview(); renderCards(); if (!$('view-stats').hidden) renderStats(); }
+
+function renderCards(){
+  var dl = $('deck-list'), all = decks();
+  dl.innerHTML = all.map(function(d){ return '<option value="' + esc(d) + '">'; }).join('');
+  var sel = $('f-filter');
+  sel.innerHTML = '<option value="*">All decks</option>' + all.map(function(d){ return '<option value="' + esc(d) + '"' + (filterDeck === d ? ' selected' : '') + '>' + esc(d) + '</option>'; }).join('');
+  var t = todayKey(), list = S.cards.filter(function(c){ return filterDeck === '*' || c.deck === filterDeck; })
+    .sort(function(a, b){ return a.created < b.created ? 1 : a.created > b.created ? -1 : 0; });
+  $('n-all').textContent = S.cards.length;
+  if (!list.length){ $('card-list').innerHTML = '<p class="muted" style="margin:0">No cards here yet. Add one above.</p>'; return; }
+  $('card-list').innerHTML = list.map(function(c){
+    var status = c.isNew ? 'new' : (c.due <= t ? 'due now' : 'due in ' + fmtDays(diffDays(c.due, t)));
+    return '<div class="item"><div><div class="q">' + esc(c.front) + '</div><div class="a">' + esc(c.back) + '</div></div>' +
+      '<div class="row" style="align-self:start;gap:6px"><button class="btn small" data-edit="' + esc(c.id) + '">Edit</button><button class="btn small danger" data-del="' + esc(c.id) + '">Delete</button></div>' +
+      '<div class="meta"><span class="pill' + (!c.isNew && c.due <= t ? ' due' : '') + '">' + status + '</span><span>' + esc(c.deck) + '</span>' +
+      (c.isNew ? '' : '<span>interval ' + fmtDays(c.interval) + '</span><span>ease ' + (c.ease || 2.5).toFixed(2) + '</span><span>lapses ' + (c.lapses || 0) + '</span>') + '</div></div>';
+  }).join('');
+}
+
+$('card-list').addEventListener('click', function(e){
+  var del = e.target.closest('[data-del]'), ed = e.target.closest('[data-edit]');
+  if (del){
+    if (del.dataset.armed !== '1'){ del.dataset.armed = '1'; del.textContent = 'Confirm delete'; setTimeout(function(){ if (del.isConnected){ del.dataset.armed = ''; del.textContent = 'Delete'; } }, 3000); return; }
+    removeCard(del.dataset.del); R.startedKey = ''; renderAll(); toast('Card deleted.');
+  } else if (ed){
+    var c = S.cards.filter(function(x){ return x.id === ed.dataset.edit; })[0]; if (!c) return;
+    editingId = c.id; $('f-front').value = c.front; $('f-back').value = c.back; $('f-deck').value = c.deck;
+    document.querySelector('#add-form button[type=submit]').textContent = 'Save changes';
+    $('f-front').scrollIntoView({ block: 'center' }); $('f-front').focus();
+  }
+});
+$('f-filter').onchange = function(e){ filterDeck = e.target.value; renderCards(); };
+$('add-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var front = $('f-front').value.trim(), back = $('f-back').value.trim(), deck = $('f-deck').value.trim() || 'General';
+  if (!front || !back){ toast('Fill in both the question and the answer.'); return; }
+  if (editingId){
+    var c = S.cards.filter(function(x){ return x.id === editingId; })[0];
+    if (c){ c.front = front; c.back = back; c.deck = deck; saveCard(c); }
+    editingId = null; document.querySelector('#add-form button[type=submit]').textContent = 'Add card'; toast('Card updated.');
+  } else {
+    var nc = newCard(front, back, deck, todayKey(), S.cfg); S.cards.push(nc); saveCard(nc); toast('Card added.');
+  }
+  $('f-front').value = ''; $('f-back').value = ''; $('f-front').focus();
+  R.startedKey = ''; renderAll();
+});
+$('btn-export').onclick = exportBackup;
+$('f-import').onchange = function(e){ var f = e.target.files[0]; if (f) importBackup(f, function(){ R.startedKey = ''; renderAll(); }); e.target.value = ''; };
+
+/* ---- Progress ---- */
+function barChart(vals, labels, label){
+  var W = 560, H = 150, pl = 28, pb = 22, pt = 12, n = vals.length, mx = Math.max(1, Math.max.apply(null, vals));
+  var step = Math.ceil(mx / 4), top = step * 4, bw = (W - pl) / n, ch = H - pb - pt, out = '';
+  for (var g = 0; g <= 4; g++){
+    var y = pt + ch - (ch * g / 4);
+    out += '<line x1="' + pl + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="var(--line)" stroke-width="1"/>' +
+      '<text x="' + (pl - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="10" fill="var(--ink-2)" font-family="JetBrains Mono,monospace">' + (step * g) + '</text>';
+  }
+  vals.forEach(function(v, i){
+    var h = ch * v / top, x = pl + i * bw + bw * 0.18, w = bw * 0.64;
+    out += '<rect x="' + x.toFixed(1) + '" y="' + (pt + ch - h).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2" fill="var(--accent)"><title>' + esc(labels[i]) + ': ' + v + '</title></rect>';
+    if (n <= 8 || i % 2 === 0 || i === n - 1)
+      out += '<text x="' + (x + w / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" fill="var(--ink-2)" font-family="JetBrains Mono,monospace">' + esc(shortLabel(labels[i])) + '</text>';
+  });
+  return '<div class="chart"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + '">' + out + '</svg></div>';
+}
+function shortLabel(k){ return k.slice(5).replace('-', '/'); }
+function renderStats(){
+  var t = todayKey(), cards = S.cards, learned = cards.filter(function(c){ return !c.isNew; });
+  var mature = learned.filter(function(c){ return c.interval >= 21; }).length;
+  var d30 = 0, ok30 = 0, i, k;
+  for (i = 0; i < 30; i++){ var row = S.stats.days[addDays(t, -i)]; if (row){ d30 += row.n; ok30 += row.ok; } }
+  var streak = 0; for (i = (S.stats.days[t] ? 0 : 1); ; i++){ if (S.stats.days[addDays(t, -i)] && S.stats.days[addDays(t, -i)].n > 0) streak++; else break; if (i > 3650) break; }
+  var hist = [], hl = []; for (i = 13; i >= 0; i--){ k = addDays(t, -i); hist.push((S.stats.days[k] || { n: 0 }).n); hl.push(k); }
+  var fc = [], fl = []; for (i = 0; i < 7; i++){ k = addDays(t, i); fl.push(k);
+    fc.push(learned.filter(function(c){ return i === 0 ? c.due <= k : c.due === k; }).length); }
+  $('stats-panel').innerHTML =
+    '<div class="stats"><div class="stat"><b>' + cards.length + '</b><span>cards in total</span></div>' +
+    '<div class="stat"><b>' + mature + '</b><span>mature (21+ day interval)</span></div>' +
+    '<div class="stat"><b>' + (d30 ? Math.round(ok30 / d30 * 100) + '%' : '—') + '</b><span>recalled correctly, last 30 days</span></div>' +
+    '<div class="stat"><b>' + streak + '</b><span>day streak</span></div></div>' +
+    '<h3 style="font-size:1rem;margin:20px 0 6px">Reviews per day, last 14 days</h3>' + barChart(hist, hl, 'Reviews per day over the last 14 days') +
+    '<h3 style="font-size:1rem;margin:20px 0 6px">Forecast: cards due each day</h3>' + barChart(fc, fl, 'Cards due per day over the next 7 days') +
+    '<p class="note" style="margin-top:10px">Today\'s bar includes anything overdue. "Correct" counts Good and Easy ratings. Scheduling rules live in the Settings tab.</p>';
+}
+
+/* ---- Notes to cards (asks Claude, only where available) ---- */
+var genAbort = null;
+function setupGen(){
+  if (typeof claude === 'undefined' || !claude.use) return;
+  claude.use('sample').then(function(sample){
+    if (!sample) return;
+    $('btn-gen-toggle').hidden = false;
+    $('btn-gen-toggle').onclick = function(){ $('gen-box').classList.toggle('on'); };
+    $('btn-gen').onclick = function(){
+      var notes = $('f-notes').value.trim().slice(0, 12000);
+      if (!notes){ $('gen-status').textContent = 'Paste some notes first.'; return; }
+      var btn = $('btn-gen'); btn.disabled = true; $('gen-status').textContent = 'Drafting…'; $('gen-out').innerHTML = '';
+      var prompt = 'Turn these study notes into flashcards for active recall. Each card tests one fact or idea. The question must make sense on its own and be answerable from memory. The answer is short (under 30 words). Make at most 12 cards and skip trivia. Reply with only a JSON array of objects like [{"front":"question","back":"answer"}].\n\nNOTES:\n' + notes;
+      sample.json(prompt, { modelTier: 'default' }).then(function(arr){
+        var cards = (Array.isArray(arr) ? arr : []).filter(function(x){ return x && typeof x.front === 'string' && typeof x.back === 'string' && x.front.trim() && x.back.trim(); }).slice(0, 12);
+        if (!cards.length){ $('gen-status').textContent = 'No usable cards came back. Try a longer or clearer passage.'; return; }
+        $('gen-status').textContent = 'Untick any you do not want, then add.';
+        $('gen-out').innerHTML = cards.map(function(c, i){
+          return '<label class="pick"><input type="checkbox" checked data-i="' + i + '"><span><b>' + esc(c.front) + '</b><br><span class="muted">' + esc(c.back) + '</span></span></label>';
+        }).join('') + '<div><button class="btn primary small" id="gen-add">Add selected to deck</button></div>';
+        $('gen-add').onclick = function(){
+          var deck = $('f-deck').value.trim() || 'General', n = 0;
+          Array.prototype.forEach.call($('gen-out').querySelectorAll('input:checked'), function(cb){
+            var c = cards[+cb.dataset.i]; var nc = newCard(c.front.trim(), c.back.trim(), deck, todayKey(), S.cfg); S.cards.push(nc); saveCard(nc); n++;
+          });
+          $('gen-out').innerHTML = ''; $('gen-status').textContent = ''; $('f-notes').value = '';
+          R.startedKey = ''; renderAll(); toast(n + ' card' + (n === 1 ? '' : 's') + ' added to ' + deck + '.');
+        };
+      }).catch(function(e){
+        var m = { not_granted: 'Claude access was declined for this page.', rate_limited: 'Too many requests. Wait a moment and try again.', invalid_json: 'Claude\'s reply could not be read. Try again.' };
+        $('gen-status').textContent = m[e && e.code] || 'Could not draft cards right now. Try again later.';
+      }).then(function(){ btn.disabled = false; });
+    };
+  }).catch(function(){});
+}
+
+/* ---- Settings: every scheduling and study rule is editable ---- */
+var isSm2 = function(c){ return c.mode !== 'ladder'; };
+var isLadder = function(c){ return c.mode === 'ladder'; };
+function num(k, label, min, max, step, hint, intOnly){ return { k: k, t: 'num', label: label, min: min, max: max, step: step, hint: hint, int: !!intOnly }; }
+var FIELDS = [
+  { g: 'Repetition schedule', items: [
+    { k: 'mode', t: 'select', label: 'Scheduling method', opts: [['sm2', 'Adaptive: gaps grow by each card\'s ease'], ['ladder', 'Fixed ladder: your own list of days']],
+      hint: 'Adaptive spaces easy cards further apart and hard cards closer. A fixed ladder gives every card the same days.' },
+    { k: 'ladder', t: 'text', label: 'Repetition days', show: isLadder,
+      hint: 'Days after each successful review, separated by commas. Good moves up one step, Easy skips one, Hard repeats the previous step, Again returns to the start. After the last step the final gap repeats.' }
+  ] },
+  { g: 'First reviews (days)', show: isSm2, items: [
+    num('goodFirst', 'First Good', 1, 365, 1, 'Gap after the first successful review of a card.', true),
+    num('goodSecond', 'Second Good', 1, 365, 1, 'Gap after the second successful review.', true),
+    num('easyFirst', 'First Easy', 1, 365, 1, 'Gap when a new card is rated Easy.', true),
+    num('easySecond', 'Second Easy', 1, 365, 1, 'Gap after the second review when rated Easy.', true),
+    num('hardFirst', 'First Hard', 1, 365, 1, 'Gap when a new card is rated Hard.', true)
+  ] },
+  { g: 'How gaps grow', show: isSm2, items: [
+    num('hardMult', 'Hard multiplier', 1, 3, 0.05, 'Previous gap times this when you rate Hard.'),
+    num('easyMult', 'Easy bonus', 1, 4, 0.05, 'Extra multiplier on top of ease when you rate Easy.'),
+    num('startEase', 'Starting ease', 1.3, 4, 0.05, 'Ease given to new cards. Later gaps are the previous gap times ease.'),
+    num('minEase', 'Minimum ease', 1.1, 3, 0.05, 'Ease never drops below this.'),
+    num('againPenalty', 'Ease lost on Again', 0, 1, 0.05, ''),
+    num('hardPenalty', 'Ease lost on Hard', 0, 1, 0.05, ''),
+    num('easyEaseBonus', 'Ease gained on Easy', 0, 1, 0.05, '')
+  ] },
+  { g: 'Limits and misses', items: [
+    num('intervalMult', 'Interval scale', 0.1, 5, 0.05, 'Multiplies every gap. Below 1 reviews more often, above 1 less often.'),
+    num('maxInterval', 'Longest gap (days)', 1, 36500, 1, 'No card waits longer than this.', true),
+    num('lapseInterval', 'Gap after Again (days)', 0, 30, 1, '0 brings the card back today.', true),
+    { k: 'lapseRequeue', t: 'bool', label: 'Show missed cards again in the same session', hint: 'Applies when the gap after Again is 0.' }
+  ] },
+  { g: 'Daily plan', items: [
+    num('newLimit', 'New cards per day', 0, 500, 1, '', true),
+    num('maxReviews', 'Reviews per day', 0, 5000, 1, '0 means no limit. New cards are not counted.', true),
+    { k: 'newOrder', t: 'select', label: 'New card order', opts: [['added', 'Oldest first'], ['newest', 'Newest first'], ['random', 'Random']] },
+    { k: 'reviewOrder', t: 'select', label: 'Due card order', opts: [['overdue', 'Most overdue first'], ['random', 'Random']] },
+    num('aheadSize', 'Study ahead batch', 1, 100, 1, 'Cards shown each time you choose Study ahead.', true),
+    num('rollover', 'New day starts at (hour)', 0, 12, 1, 'Hours after midnight. Set 4 if you study late and want 1 a.m. to count as yesterday.', true)
+  ] },
+  { g: 'Review screen', items: [
+    { k: 'recallBox', t: 'bool', label: 'Show a box to type my answer before revealing', hint: 'Turn it off to recall silently.' },
+    { k: 'theme', t: 'select', label: 'Appearance', opts: [['auto', 'Match my device'], ['light', 'Light'], ['dark', 'Dark']] }
+  ] }
+];
+var themeTouched = false;
+function applyTheme(){
+  var r = document.documentElement;
+  if (S.cfg.theme === 'light' || S.cfg.theme === 'dark'){ r.setAttribute('data-theme', S.cfg.theme); themeTouched = true; }
+  else if (themeTouched){ r.removeAttribute('data-theme'); themeTouched = false; }
+}
+function fieldHtml(f){
+  var id = 's-' + f.k, v = S.cfg[f.k], h = f.hint ? '<span class="hint" style="text-transform:none;letter-spacing:0;font-weight:400">' + esc(f.hint) + '</span>' : '';
+  if (f.t === 'bool') return '<div style="grid-column:1/-1"><label class="chk" for="' + id + '"><input type="checkbox" id="' + id + '"' + (v ? ' checked' : '') + '>' + esc(f.label) + '</label>' + (f.hint ? '<div class="hint" style="margin-left:26px">' + esc(f.hint) + '</div>' : '') + '</div>';
+  if (f.t === 'select') return '<label class="fld" for="' + id + '"' + (f.k === 'mode' ? ' style="grid-column:1/-1"' : '') + '>' + esc(f.label) + '<select id="' + id + '">' + f.opts.map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === v ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>' + h + '</label>';
+  if (f.t === 'text') return '<label class="fld" for="' + id + '" style="grid-column:1/-1">' + esc(f.label) + '<input type="text" id="' + id + '" value="' + esc(v) + '" autocomplete="off">' + h + '</label>';
+  return '<label class="fld" for="' + id + '">' + esc(f.label) + '<input type="text" inputmode="decimal" id="' + id + '" value="' + esc(v) + '" autocomplete="off">' + h + '</label>';
+}
+function renderSettings(){
+  var root = $('settings-root');
+  root.innerHTML = '<div class="panel"><div class="row between"><div><h2 style="font-size:1.15rem">Study settings</h2><p class="note" style="margin:4px 0 0">Changes save as you go and apply to your next reviews. Cards already scheduled keep their due dates.</p></div>' +
+    '<button class="btn small" id="s-reset">Reset to defaults</button></div></div>' +
+    '<div class="panel"><h2 style="font-size:1.05rem;margin-bottom:10px">What these settings produce</h2><div id="s-preview"></div></div>' +
+    FIELDS.map(function(g, gi){
+      return '<div class="panel" id="sg-' + gi + '"><h2 style="font-size:1.05rem;margin-bottom:12px">' + esc(g.g) + '</h2><div class="grid2">' + g.items.map(fieldHtml).join('') + '</div></div>';
+    }).join('');
+  syncSettings();
+  $('s-reset').onclick = function(e){
+    var b = e.currentTarget;
+    if (b.dataset.armed !== '1'){ b.dataset.armed = '1'; b.textContent = 'Confirm reset'; setTimeout(function(){ if (b.isConnected){ b.dataset.armed = ''; b.textContent = 'Reset to defaults'; } }, 3000); return; }
+    S.cfg = mergeCfg(); savePrefs(); applyTheme(); R.startedKey = ''; renderSettings(); toast('Settings reset to defaults.');
+  };
+}
+function syncSettings(){
+  FIELDS.forEach(function(g, gi){ var el = $('sg-' + gi); if (el && g.show) el.hidden = !g.show(S.cfg);
+    g.items.forEach(function(f){ if (f.show){ var inp = $('s-' + f.k); if (inp && inp.closest('label')) inp.closest('label').hidden = !f.show(S.cfg); } }); });
+  $('s-preview').innerHTML = previewHtml();
+}
+function simulate(grade){
+  var c = { ease: S.cfg.startEase, reps: 0, lapses: 0, interval: 0 }, t = '2000-01-01', day = 0, gaps = [], marks = [];
+  for (var i = 0; i < 7; i++){
+    var n = schedule(c, grade, t, S.cfg); c = Object.assign({}, c, n);
+    gaps.push(n.interval); day += n.interval; marks.push(day); t = addDays(t, n.interval);
+  }
+  return { gaps: gaps, marks: marks };
+}
+function previewHtml(){
+  var rows = [['Good every time', 3], ['Easy every time', 4], ['Hard every time', 2]];
+  var out = rows.map(function(r){
+    var s = simulate(r[1]);
+    return '<div style="margin-bottom:10px"><div class="muted" style="font-size:.8rem;font-weight:600">' + r[0] + '</div>' +
+      '<div class="mono" style="font-size:.85rem;overflow-wrap:anywhere">Gaps: ' + s.gaps.map(function(g){ return g + 'd'; }).join(' → ') + '</div>' +
+      '<div class="mono muted" style="font-size:.78rem;overflow-wrap:anywhere">Review on day ' + s.marks.join(', ') + '</div></div>';
+  }).join('');
+  var li = Math.max(0, Math.round(S.cfg.lapseInterval));
+  return out + '<div class="muted" style="font-size:.85rem">Rate Again and the card returns ' + (li === 0 ? 'today' + (S.cfg.lapseRequeue ? ', later in the same session' : '') : 'in ' + li + ' day' + (li === 1 ? '' : 's')) + '.</div>';
+}
+document.addEventListener('change', function(e){
+  var el = e.target; if (!el.id || el.id.indexOf('s-') !== 0 || !$('settings-root').contains(el)) return;
+  var k = el.id.slice(2), f = null;
+  FIELDS.forEach(function(g){ g.items.forEach(function(x){ if (x.k === k) f = x; }); });
+  if (!f) return;
+  if (f.t === 'bool') S.cfg[k] = el.checked;
+  else if (f.t === 'select') S.cfg[k] = el.value;
+  else if (f.t === 'text'){ S.cfg[k] = parseLadder(el.value).join(', '); el.value = S.cfg[k]; }
+  else {
+    var v = parseFloat(String(el.value).replace(',', '.'));
+    if (!isFinite(v)){ el.value = S.cfg[k]; toast('Enter a number.'); return; }
+    if (f.int) v = Math.round(v);
+    v = Math.max(f.min, Math.min(f.max, v)); v = Math.round(v * 1000) / 1000;
+    S.cfg[k] = v; el.value = v;
+  }
+  if (S.cfg.minEase > S.cfg.startEase){ S.cfg.minEase = S.cfg.startEase; var me = $('s-minEase'); if (me) me.value = S.cfg.minEase; }
+  if (k === 'theme') applyTheme();
+  savePrefs(); R.startedKey = ''; syncSettings(); $('n-due').textContent = dueCount();
+});
+/* ---- Boot ---- */
+Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(b){ b.onclick = function(){ showView(b.dataset.view); }; });
+loadLocal(); applyTheme(); describeBackend(); startSession(); renderAll(); setupGen();
+connectDb(function(){ applyTheme(); R.startedKey = ''; renderAll(); if (!$('view-settings').hidden) renderSettings(); });
+</script>
+
+</body></html>

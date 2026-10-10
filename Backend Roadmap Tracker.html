@@ -1,0 +1,1634 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Backend Roadmap Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout concept: an engineer's logbook. One sticky header with tabs, a single column of ruled panels,
+   and a two-pane phase browser on the Roadmap tab. Cool blue-slate neutrals, one ink-blue accent,
+   and three status hues (amber learning, violet practicing, green done). */
+:root {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface2: #e9edf4;
+  --line: #d3dae6;
+  --fg: #141b28;
+  --muted: #566277;
+  --accent: #2748c8;
+  --accent-ink: #ffffff;
+  --learn: #a85f00;
+  --practice: #6a3fc2;
+  --done: #146c45;
+  --warn: #b3261e;
+  --added: #0b6f86;
+  --font-display: 'Bricolage Grotesque', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e131c; --surface: #151c28; --surface2: #1d2634; --line: #2a3548; --fg: #e6ebf4; --muted: #98a4b9;
+    --accent: #86a2ff; --accent-ink: #0a1022; --learn: #e2a345; --practice: #b9a0ff; --done: #4cc38a; --warn: #ff8f86; --added: #55c2d8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e131c; --surface: #151c28; --surface2: #1d2634; --line: #2a3548; --fg: #e6ebf4; --muted: #98a4b9;
+  --accent: #86a2ff; --accent-ink: #0a1022; --learn: #e2a345; --practice: #b9a0ff; --done: #4cc38a; --warn: #ff8f86; --added: #55c2d8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 0 48px; }
+.wrap { max-width: 1080px; margin-inline: auto; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); margin-inline: -16px; padding-inline: 16px; }
+.top-in { max-width: 1080px; margin-inline: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; padding-block: 10px 0; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brand h1 { font-family: var(--font-display); font-size: 20px; line-height: 1.1; margin: 0; letter-spacing: -0.01em; font-weight: 700; }
+.brand span { color: var(--muted); font-size: 12.5px; }
+#savechip { font-family: var(--font-mono); font-size: 11.5px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); background: var(--surface); }
+#savechip[data-k="ok"] { color: var(--done); border-color: var(--done); }
+#savechip[data-k="warn"] { color: var(--learn); border-color: var(--learn); }
+nav.tabs { max-width: 1080px; margin-inline: auto; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs::-webkit-scrollbar { display: none; }
+.tab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px 8px; cursor: pointer; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.tab:hover { color: var(--fg); }
+.tab.on { color: var(--fg); border-bottom-color: var(--accent); }
+
+main { max-width: 1080px; margin-inline: auto; padding-block: 20px 0; }
+.view { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; min-width: 0; }
+.panel h3 { font-family: var(--font-display); font-size: 17px; margin: 0 0 6px; letter-spacing: -0.005em; }
+.panel h3.gap { margin-top: 20px; }
+.sub { color: var(--muted); margin: 0 0 12px; }
+.meta { color: var(--muted); font-family: var(--font-mono); font-size: 12px; margin: 4px 0 0; }
+.count { font-family: var(--font-mono); font-size: 12px; color: var(--accent-ink); background: var(--accent); border-radius: 10px; padding: 1px 8px; vertical-align: 2px; }
+.ok { color: var(--done); }
+.late { color: var(--warn); }
+
+.hero-top { display: flex; flex-wrap: wrap; gap: 12px 32px; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+.big { font-family: var(--font-display); font-size: 56px; line-height: 1; margin: 0; letter-spacing: -0.03em; }
+.hero-side p { margin: 0; text-align: right; }
+.hero .sub { margin: 4px 0 0; }
+@media (max-width: 520px) { .hero-side p { text-align: left; } .big { font-size: 46px; } }
+
+.bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.bar.lg { height: 10px; border-radius: 5px; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 7px 14px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { background: var(--warn); color: var(--bg); border-color: var(--warn); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.link { border: 0; background: none; color: var(--accent); padding: 8px 0 0; }
+.in { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 5px; padding: 7px 10px; }
+textarea.in { resize: vertical; }
+.in.flash { border-color: var(--warn); box-shadow: 0 0 0 2px color-mix(in srgb, var(--warn) 30%, transparent); }
+.msg { color: var(--warn); margin: 0 0 10px; font-weight: 500; }
+.msg.ok { color: var(--done); margin: 10px 0 0; min-height: 1em; }
+
+.tag { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; border: 1px solid var(--line); border-radius: 3px; padding: 1px 6px; margin-left: 8px; color: var(--muted); white-space: nowrap; vertical-align: 2px; }
+.tag.new { color: var(--added); border-color: var(--added); }
+.tag.due { color: var(--warn); border-color: var(--warn); }
+.tag.ok { color: var(--done); border-color: var(--done); margin-left: 0; }
+.tag.ready { color: var(--accent); border-color: var(--accent); margin-left: 0; }
+
+/* topics */
+.trow { border-top: 1px solid var(--line); }
+.trow:first-of-type { border-top: 0; }
+.trow-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 12px; align-items: center; padding: 8px 0; }
+.tname { display: flex; gap: 8px; align-items: flex-start; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; min-width: 0; }
+.caret { color: var(--muted); width: 12px; flex: none; padding-top: 2px; }
+.tt { display: flex; flex-direction: column; min-width: 0; }
+.tn { font-weight: 600; overflow-wrap: anywhere; }
+.td { color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+.tp { color: var(--muted); font-family: var(--font-mono); font-size: 11.5px; margin-top: 2px; }
+.th { font-family: var(--font-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.stat { border: 1px solid var(--line); background: var(--bg); border-radius: 5px; padding: 5px 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.stat[data-s="1"] { color: var(--learn); border-color: var(--learn); }
+.stat[data-s="2"] { color: var(--practice); border-color: var(--practice); }
+.stat[data-s="3"] { color: var(--done); border-color: var(--done); background: color-mix(in srgb, var(--done) 10%, var(--bg)); }
+.trow[data-s="3"] .tn { text-decoration: line-through; text-decoration-color: var(--muted); text-decoration-thickness: 1px; }
+@media (max-width: 560px) { .trow-head { grid-template-columns: minmax(0, 1fr) auto; } .th { display: none; } }
+.tdetail { display: flex; flex-direction: column; gap: 6px; padding: 4px 0 16px 20px; }
+.lab { font-size: 12.5px; font-weight: 600; margin-top: 6px; display: flex; gap: 8px; align-items: baseline; }
+.hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+.ext { font-size: 13px; color: var(--accent); }
+.tactions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.gap { margin-top: 20px; }
+
+/* roadmap */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.toolbar .in { max-width: 280px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 4px 12px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.rm { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 20px; align-items: start; }
+.phases { display: flex; flex-direction: column; gap: 6px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 96px); max-height: calc(100vh - 120px); overflow-y: auto; padding-right: 2px; }
+.phbtn { display: flex; flex-direction: column; gap: 4px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+.phbtn.on { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.phl { display: flex; justify-content: space-between; gap: 8px; }
+.phn { font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+.phc { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.pht { font-size: 13px; color: var(--muted); }
+.rmmain { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; min-width: 0; }
+.ph-head { display: flex; flex-direction: column; gap: 6px; padding-bottom: 12px; }
+.ph-title { font-family: var(--font-display); font-size: 26px; line-height: 1.15; margin: 0; letter-spacing: -0.015em; text-wrap: balance; }
+.eyebrow { font-family: var(--font-mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0; }
+.goal { margin: 0; max-width: 68ch; }
+.cat { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--line); margin-top: 20px; padding-bottom: 4px; }
+.cat h3 { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin: 0; color: var(--muted); font-weight: 500; }
+.pager { display: flex; justify-content: space-between; margin-top: 24px; }
+@media (max-width: 820px) {
+  .rm { grid-template-columns: minmax(0, 1fr); }
+  .phases { position: static; max-height: none; flex-direction: row; overflow-x: auto; padding-bottom: 6px; }
+  .phbtn { min-width: 150px; flex: none; }
+}
+
+/* reviews, log */
+.review { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; border-top: 1px solid var(--line); padding: 10px 0; }
+.rv-main { min-width: 0; flex: 1 1 260px; }
+.rv-name { font-weight: 600; margin: 0; }
+.rv-btns { display: flex; gap: 8px; align-items: center; }
+.logform { display: grid; grid-template-columns: 90px 120px 100px minmax(0, 1fr) auto; gap: 8px; margin-top: 14px; }
+.logform .in[hidden] { display: none; }
+@media (max-width: 720px) { .logform { grid-template-columns: 1fr 1fr; } .logform .grow { grid-column: 1 / -1; } .logform .btn { grid-column: 1 / -1; } }
+.entry { display: grid; grid-template-columns: 70px 70px minmax(0, 1fr) 70px 28px; gap: 8px; align-items: baseline; border-top: 1px solid var(--line); padding: 7px 0; font-size: 14px; }
+.ed, .ek, .em { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.en { overflow-wrap: anywhere; }
+.em { text-align: right; }
+.x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; }
+.x:hover { color: var(--warn); }
+@media (max-width: 560px) { .entry { grid-template-columns: 60px minmax(0, 1fr) 56px 24px; } .ek { display: none; } }
+.wk { position: relative; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; height: 190px; align-items: end; padding-top: 18px; margin-top: 8px; }
+.wk-col { display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; height: 100%; gap: 4px; }
+.wk-bar { background: var(--surface2); border-radius: 3px 3px 0 0; min-height: 2px; border-top: 2px solid var(--muted); }
+.wk-bar.cur { background: color-mix(in srgb, var(--accent) 30%, var(--surface2)); border-top-color: var(--accent); }
+.wk-val { font-family: var(--font-mono); font-size: 11.5px; text-align: center; min-height: 14px; }
+.wk-lab { font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-align: center; white-space: nowrap; overflow: hidden; }
+.wk-target { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--muted); pointer-events: none; margin-bottom: 36px; }
+.wk-target span { position: absolute; right: 0; top: -17px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); background: var(--surface); padding-left: 4px; }
+
+/* timeline */
+.settings { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 12px; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 12.5px; font-weight: 600; }
+.field .in { width: 160px; }
+.field .in.num { width: 90px; }
+.field.check { flex-direction: row; align-items: center; gap: 8px; padding-bottom: 6px; }
+.field.check label { font-weight: 400; font-size: 14px; }
+.chartwrap { margin: 8px 0 12px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .axis { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+.chart .plan { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 5; }
+.chart .actual { stroke: var(--accent); stroke-width: 2.5; }
+.chart .today { stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.chart .dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--accent); }
+.sw.plan { border-top: 2px dashed var(--muted); }
+.scroll { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
+.tbl th { text-align: left; font-family: var(--font-mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 500; border-bottom: 2px solid var(--line); padding: 6px 10px 6px 0; }
+.tbl td { border-bottom: 1px solid var(--line); padding: 8px 10px 8px 0; vertical-align: top; }
+.tbl td.num, .tbl td.win { font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; }
+.tbl tr.done td { color: var(--muted); }
+.tbl tr.active td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.tbl tr.active td:first-child { box-shadow: inset 3px 0 0 var(--accent); padding-left: 8px; }
+
+/* capstone */
+.cap-head { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.cap-head h3 { margin: 2px 0 0; font-size: 19px; }
+.cap-meta { display: flex; gap: 12px; align-items: center; }
+.cap.complete { border-color: var(--done); }
+.checks { list-style: none; margin: 14px 0 4px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.checks li { display: flex; gap: 10px; align-items: flex-start; }
+.checks input { margin-top: 4px; accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.checks label { cursor: pointer; }
+.rules { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: center; }
+.row .in { max-width: 320px; }
+@media (prefers-reduced-motion: no-preference) { .bar span { transition: width .25s ease; } }
+</style>
+<div class="wrap">
+  <header class="top">
+    <div class="top-in">
+      <div class="brand"><h1>Backend Roadmap</h1><span>Java, Spring, distributed systems, PayVerse</span></div>
+      <span id="savechip" data-k="wait" role="status">Connecting…</span>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+  </header>
+  <main id="main"></main>
+</div>
+<script>
+/* ===== ROADMAP DATA =====
+   Row format: Category|Topic|What to learn[|hours]
+   A leading + marks a topic added to fill a gap in the original roadmap.
+   Default hours: 1.5 per topic, 10 per Practice row. */
+const PH = {};
+const PH_ORDER = [];
+function defPhase(id, title, goal, prio, raw) {
+  const topics = [];
+  const seen = {};
+  raw.trim().split('\n').forEach(function (line) {
+    line = line.trim();
+    if (!line) return;
+    const isNew = line.charAt(0) === '+';
+    if (isNew) line = line.slice(1);
+    const p = line.split('|');
+    let slug = p[1].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    seen[slug] = (seen[slug] || 0) + 1;
+    if (seen[slug] > 1) slug += '-' + seen[slug];
+    const h = p[3] ? parseFloat(p[3]) : (p[0] === 'Practice' ? 10 : 1.5);
+    topics.push({ id: id + ':' + slug, cat: p[0], name: p[1], desc: p[2], h: h, isNew: isNew, phase: id });
+  });
+  const hrs = topics.reduce(function (a, t) { return a + t.h; }, 0);
+  PH[id] = { id: id, title: title, goal: goal, prio: prio, topics: topics, hrs: hrs };
+  PH_ORDER.push(id);
+}
+
+defPhase('0', 'Foundations and Tooling',
+  'Build, run and debug a multi-module project from the command line, and explain what happens on the wire for one HTTPS request.', 'core', `
++Dev Tooling|Git workflows|Branching, rebase vs merge, conflict resolution, interactive rebase, clean pull requests
++Dev Tooling|Linux and shell|Filesystem, permissions, processes, grep/sed/awk, curl, ssh, reading logs
++Dev Tooling|Maven and Gradle|Build lifecycle, dependency scopes, BOMs, multi-module builds, reproducible builds
++Dev Tooling|IDE and debugging|Breakpoints, remote debugging, conditional breakpoints, reading stack traces
++Networking|TCP/IP and DNS|Handshake, ports, name resolution, latency, connection reuse
++Networking|HTTP/1.1, HTTP/2 and HTTP/3|Keep-alive, multiplexing, head-of-line blocking, when the version matters
++Networking|TLS and certificates|Handshake, chain of trust, certificate expiry, mutual TLS concept
++Networking|Proxies, load balancers and CDNs|L4 vs L7, reverse proxy, TLS termination, edge caching
++Operating Systems|Processes, threads and scheduling|Context switches, CPU-bound vs I/O-bound work, what a thread costs
++Operating Systems|Virtual memory|Paging, page cache, swapping, why container memory differs from heap size
++Operating Systems|I/O models|Blocking vs non-blocking I/O, epoll, why thread-per-request scales the way it does
++Foundations|Big-O and core data structures|Complexity, arrays, hash maps, trees, heaps, applied to backend choices
++Practice|Tooling lab|Build a multi-module Maven project in Git, run it in a Linux container, and read a TLS handshake with curl|8
+`);
+
+defPhase('1', 'Java, Modern Java and Concurrency',
+  'Build small Java exercises and explain trade-offs and internals; finish with a concurrent task processor.', 'core', `
+Java Fundamentals|OOP foundations|Classes, objects, encapsulation, inheritance, polymorphism
+Java Fundamentals|Interfaces vs abstract classes|When and why to use each; default/static interface methods
+Java Fundamentals|Composition vs inheritance|Prefer composition where appropriate; coupling and reuse
+Java Fundamentals|Generics|Type parameters, bounds, wildcards, PECS, type erasure
+Java Fundamentals|Collections|List, Set, Map, Queue, Deque; implementations and tradeoffs
+Java Fundamentals|equals/hashCode|Contract, collections behavior, mutable keys
+Java Fundamentals|Immutability|Immutable objects, defensive copies, final fields
+Java Fundamentals|Records|Record semantics and suitable use cases
+Java Fundamentals|Enums|Enum behavior, fields, methods, strategy-like usage
+Java Fundamentals|Exceptions|Checked vs unchecked, custom exceptions, propagation
+Java Fundamentals|Annotations|Built-in/custom annotations and retention/target basics
+Java Fundamentals|Reflection|Class metadata, methods, fields, invocation, tradeoffs
+Java Fundamentals|Lambdas and functional interfaces|Function, Predicate, Consumer, Supplier, method references
+Java Fundamentals|Streams|Intermediate/terminal operations, collectors, parallel-stream tradeoffs
+Java Fundamentals|Optional|Good usage, anti-patterns, API design
+Java Fundamentals|Date/Time API|Instant, LocalDateTime, ZonedDateTime, Duration, Period
++Java Fundamentals|Strings and text|String pool, StringBuilder, charsets, formatting, regex basics
++Java Fundamentals|I/O and NIO|Streams, Files, channels, buffers, try-with-resources
++Java Fundamentals|JDBC basics|Connections, PreparedStatement, manual transactions, why ORMs exist
+Modern Java|Java 8 to 17 to 21+|Know major language/runtime improvements relevant to backend development
+Modern Java|Sealed classes|Restricting inheritance and modeling closed hierarchies
+Modern Java|Pattern matching|instanceof/switch pattern matching concepts
+Modern Java|Virtual threads|Why they exist, when they help, blocking I/O model, tradeoffs
+Modern Java|Structured concurrency concepts|Task lifecycles and cancellation concepts
+Concurrency|Thread basics|Lifecycle, Runnable/Callable, interruption
+Concurrency|synchronized|Intrinsic locks, monitor concept, visibility
+Concurrency|volatile|Visibility and ordering; what it does not provide
++Concurrency|Java Memory Model|Happens-before, visibility guarantees, safe publication
+Concurrency|Locks|ReentrantLock, ReadWriteLock, conditions
+Concurrency|Atomic classes and CAS|AtomicInteger/Long/Reference, compare-and-set
+Concurrency|Executors and thread pools|ExecutorService, scheduling, pool sizing concepts
+Concurrency|CompletableFuture|Composition, async execution, exception handling
+Concurrency|Concurrent collections|ConcurrentHashMap, BlockingQueue, CopyOnWriteArrayList
+Concurrency|Race conditions|Identify, reproduce, and prevent data races
+Concurrency|Deadlocks|Conditions, detection, prevention
+Concurrency|Thread safety|Designing stateless/immutable/thread-safe components
++Concurrency|ThreadLocal and scoped values|Per-thread state, leaks in thread pools, ScopedValue
++Testing Habit|JUnit 5 from day one|Test every exercise: arrange-act-assert, parameterized tests
++Testing Habit|TDD kata|Red-green-refactor on one small kata before the mini-project
+Practice|Java mini-project|Build a concurrent task processor using collections, executors and CompletableFuture|14
+`);
+
+defPhase('2', 'JVM Internals',
+  'Use JFR, VisualVM, jstack, jmap, jcmd and async-profiler to diagnose a slow, memory-heavy app.', 'core', `
+JVM Architecture|JVM overview|Class loader, runtime data areas, execution engine, native interface
+JVM Architecture|Heap|Object allocation, generations, memory pressure
+JVM Architecture|Stack|Frames, local variables, method calls, StackOverflowError
+JVM Architecture|Metaspace|Class metadata and class unloading concepts
+JVM Architecture|Class loading|Loading, linking, initialization, class loaders
+JVM Architecture|Bytecode|Read basic bytecode and understand method invocation instructions
+JVM Architecture|JIT compiler|Hot code, compilation and runtime optimization concepts
+Garbage Collection|GC fundamentals|Reachability, roots, allocation and collection
+Garbage Collection|GC pauses|Stop-the-world concepts and latency impact
+Garbage Collection|Memory leaks|Common Java leak patterns and retained references
+Errors|OutOfMemoryError|Heap/metaspace/direct-memory failure investigation concepts
+Errors|StackOverflowError|Typical causes and debugging
+JVM Tools|JFR|Record and inspect JVM/application behavior
+JVM Tools|VisualVM/JConsole|Inspect memory, threads and runtime metrics
+JVM Tools|jstack/jmap/jcmd|Thread dumps, heap information and JVM diagnostics
+JVM Tools|async-profiler|CPU/allocation profiling concepts
++JVM Tools|JVM flags in containers|Heap sizing, container-aware memory limits, picking a collector, key -XX flags
+Practice|JVM investigation lab|Create a slow/memory-heavy app and diagnose CPU, memory and threads
+`);
+
+defPhase('3', 'Spring Core and AOP',
+  'Build a mini DI container and extend it with proxy-based interception.', 'core', `
+Spring Container|IoC|Understand inversion of control and why containers exist
+Spring Container|Dependency Injection|Constructor/setter/field injection and design implications
+Spring Container|ApplicationContext|Role, lifecycle and common implementations
+Spring Container|BeanFactory|Relationship to ApplicationContext and bean creation
+Beans|Bean definitions|How Spring represents and creates beans
+Beans|Bean lifecycle|Instantiation, dependency injection, post-processors, initialization, destruction
+Beans|Bean scopes|Singleton, prototype, request/session concepts
+Configuration|@Configuration and @Bean|Explicit configuration and factory methods
+Configuration|Component scanning|How Spring discovers components
+Configuration|@Primary and @Qualifier|Resolving multiple candidates
+Advanced DI|Circular dependencies|Why they happen and design alternatives
+Advanced DI|Lazy initialization|When and why beans are created lazily
+Extension points|BeanPostProcessor|Intercept and customize beans during lifecycle
+Extension points|BeanFactoryPostProcessor|Modify bean definitions before bean creation
++AOP|Proxies: JDK vs CGLIB|How Spring wraps beans, final class limits, proxy-based features
++AOP|Advice, pointcuts and join points|Around/before/after advice, pointcut expressions, method interception
++AOP|Transactional proxy pitfalls|Self-invocation, private methods, why @Transactional sometimes does nothing
++Testing Habit|Mockito and context tests|Mock collaborators, test a bean without loading the whole context
+Practice|Mini DI container|Implement component registration, constructor injection and lifecycle basics
++Practice|Mini AOP|Extend the mini container with proxy-based interception and a logging aspect|8
+`);
+
+defPhase('4', 'Spring Boot Internals',
+  'Build a small custom auto-configuration and starter.', 'core', `
+Boot Basics|SpringApplication|Startup flow and application bootstrap
+Boot Basics|@SpringBootApplication|Understand Configuration + ComponentScan + EnableAutoConfiguration
+Auto Configuration|Auto-configuration|How Boot configures infrastructure automatically
+Auto Configuration|Starters|Dependency bundles and conventions
+Auto Configuration|Conditional beans|ConditionalOnClass, ConditionalOnMissingBean and related concepts
+Configuration|Configuration properties|Type-safe application configuration
+Configuration|Profiles|Environment-specific configuration
+Configuration|Environment|Property sources, precedence and resolution
+Runtime|Embedded server|Tomcat/servlet runtime and startup relationship
+Runtime|Application lifecycle|Context refresh, runners and ready events
++Runtime|Graceful shutdown|In-flight requests, SIGTERM, shutdown hooks, readiness during rollout
++Build|Packaging and layered jars|Executable jar layout, layered container images, startup time basics
+Operations|Actuator|Health, metrics, info, env and operational endpoints
+Extension|Custom starter|Create a small reusable auto-configuration module
+Practice|Boot startup tracing|Trace a Spring Boot application from main() to ready state
+`);
+
+defPhase('5', 'Spring MVC and REST',
+  'Trace a request from Tomcat through DispatcherServlet to the controller, and design a clean, versionable API.', 'core', `
+HTTP|HTTP fundamentals|Methods, status codes, headers, cookies, sessions
+REST|REST principles|Resources, representations, idempotency and API conventions
+Spring MVC|DispatcherServlet|Understand the central request dispatch flow
+Spring MVC|HandlerMapping|How requests map to controllers/handler methods
+Spring MVC|Controllers|Request mapping, parameters, request/response bodies
+Spring MVC|Jackson|JSON serialization/deserialization and customization
+Validation|Bean Validation|Constraints, validation groups concepts, custom validators
+Errors|Exception handling|@ControllerAdvice, @ExceptionHandler and error contracts
+Web pipeline|Filters|Servlet filter lifecycle and use cases
+Web pipeline|Interceptors|HandlerInterceptor and request lifecycle
+Web pipeline|Content negotiation|Media types and message converters
++Web pipeline|HTTP clients and timeouts|RestClient/WebClient, connect vs read timeouts, retries
++API Design|Pagination, filtering and sorting|Offset vs keyset pagination, stable ordering, query parameters
++API Design|API versioning and evolution|URI vs header versioning, additive changes, deprecation policy
++API Design|OpenAPI and contract-first|Spec as source of truth, generated docs and clients
++API Design|Error format (RFC 9457)|Problem details, stable error codes, never leaking internals
++API Design|Idempotency keys in HTTP APIs|Safe retries for POST, key storage, replaying the original response
++Reactive|Reactive vs virtual threads|What WebFlux solves and when virtual threads are enough
+Practice|Request tracing lab|Trace a request from Tomcat, filter, DispatcherServlet, controller to response
+`);
+
+defPhase('6', 'SQL, PostgreSQL and JPA',
+  'Analyze and optimize real queries, and debug the SQL Hibernate generates.', 'core', `
+SQL|SELECT|Filtering, ordering, expressions
+SQL|JOIN|Inner/outer joins and join correctness
+SQL|GROUP BY/HAVING|Aggregation and grouped filtering
+SQL|Subqueries|Correlated and non-correlated subqueries
+SQL|CTEs|WITH queries and recursive-query concepts
+SQL|Window functions|Ranking, running totals and partitioning
++Data Modeling|Schema design and normalization|Keys, constraints, normal forms, deliberate denormalization
++Data Modeling|Money and time in the database|NUMERIC vs float, BigDecimal mapping, timestamptz
+Transactions|ACID|Atomicity, consistency, isolation, durability
+Transactions|Isolation levels|Read phenomena and database behavior
+Transactions|Locks|Row/table locking and contention
+Transactions|Deadlocks|Detection, causes and mitigation
++Transactions|Spring @Transactional|Propagation, rollback rules, read-only, choosing transaction boundaries
+PostgreSQL|Indexes|Why indexes help and when they hurt
+PostgreSQL|B-tree indexes|Structure and common access patterns
+PostgreSQL|Composite indexes|Column order and query patterns
+PostgreSQL|EXPLAIN|Read query plans and identify bottlenecks
+PostgreSQL|MVCC|Snapshots, visibility and concurrency
+PostgreSQL|VACUUM|Dead tuples and maintenance concepts
+PostgreSQL|Connection pooling|Pool sizing, exhaustion and timeouts
++PostgreSQL|Replication and partitioning|Read replicas, replication lag, table partitioning basics
++Migrations|Flyway or Liquibase|Versioned migrations, checksums, repeatable scripts
++Migrations|Zero-downtime schema changes|Expand/contract, backfills, locking risks of ALTER TABLE
+JPA/Hibernate|Persistence Context|EntityManager and managed entities
+JPA/Hibernate|Entity lifecycle|Transient, managed, detached, removed
+JPA/Hibernate|Dirty checking|How updates are detected and flushed
+JPA/Hibernate|Caching|First-level and second-level cache concepts
+JPA/Hibernate|Lazy/Eager loading|Proxy behavior and query implications
+JPA/Hibernate|N+1 problem|Detection and fixes
+JPA/Hibernate|Fetch joins/entity graphs|Controlling fetch plans
+JPA/Hibernate|Optimistic locking|@Version and conflict handling
+JPA/Hibernate|Pessimistic locking|Database locks through JPA
+JPA/Hibernate|Hibernate proxies|How lazy associations can trigger database access
++JPA/Hibernate|Spring Data JPA|Repositories, projections, specifications, derived-query pitfalls
++NoSQL|Document and key-value stores|MongoDB and DynamoDB access patterns, when relational is still better
++Search|Full-text search|PostgreSQL full-text search, Elasticsearch/OpenSearch concepts, indexing pipelines
+Practice|Persistence lab|Build entities, inspect generated SQL, reproduce N+1 and optimize it
+`);
+
+defPhase('6B', 'Caching and Redis',
+  'Add a Redis cache-aside layer, measure the hit ratio, and survive a cache stampede.', 'core', `
++Cache Patterns|Cache-aside, read-through and write-through|Who loads and who writes, consistency of each pattern
++Cache Patterns|Invalidation and TTL strategy|Event-based vs time-based expiry, staleness you can accept
++Cache Patterns|Stampede, penetration and avalanche|Request coalescing, negative caching, jittered TTLs
++Redis|Data structures|Strings, hashes, sets, sorted sets, streams and when each fits
++Redis|Persistence and eviction|RDB vs AOF, maxmemory policies, memory sizing
++Redis|Replication, Sentinel and Cluster|Failover, hash-slot sharding, trade-offs
++Redis|Distributed locks and their limits|SET NX PX, fencing tokens, the Redlock debate
++Redis|Idempotency store and rate limiter|Atomic operations, Lua scripts, token bucket
++Spring|Spring Cache abstraction|@Cacheable, key design, serialization, per-cache TTL
++Spring|Lettuce and Redisson clients|Connection handling, timeouts, pipelining
++Practice|Caching lab|Add Redis cache-aside to a slow endpoint, measure hit ratio, trigger a stampede and fix it
+`);
+
+defPhase('7', 'Spring Security',
+  'Implement JWT authentication, trace it through the filter chain, and review the API against the OWASP API Top 10.', 'core', `
+Security Fundamentals|Authentication vs authorization|Identity verification vs permission checks
+Security Pipeline|Security Filter Chain|How requests flow through Spring Security
+Security Context|SecurityContext|Where authenticated identity is stored/accessed
+Authentication|AuthenticationManager|Authentication orchestration
+Authentication|AuthenticationProvider|Provider contract and provider selection
+Authentication|UserDetailsService|Loading users for authentication
+Authentication|Password hashing|PasswordEncoder and secure storage principles
+JWT|JWT authentication|Token structure, signing, validation, expiration
+OAuth2/OIDC|OAuth2|Roles of resource server, authorization server and client
+OAuth2/OIDC|OIDC|Identity layer over OAuth2
+Web Security|Sessions|Session-based authentication and session lifecycle
+Web Security|CSRF|Threat model and protection
+Web Security|CORS|Browser cross-origin model and configuration
+Method Security|Method authorization|Protect service methods with security rules
++Secure Coding|OWASP API Top 10|Broken object-level authorization, injection, SSRF, mass assignment
++Secure Coding|Input validation and output encoding|Allow-lists, parameterized queries, safe serialization
++Secure Coding|Dependency and supply-chain security|Vulnerability scanning, SBOMs, pinned versions
++Secrets|Secrets managers and rotation|Vault or cloud KMS, short-lived credentials, rotation without downtime
++Web Security|Brute force and rate limiting|Account lockout, throttling, credential stuffing defenses
++Web Security|mTLS and service-to-service auth|Client certificates, workload identity, token propagation
++Web Security|Security testing|Spring Security test support, ZAP basics, authorization tests
+Practice|JWT security lab|Implement and trace JWT authentication through the filter chain
+`);
+
+defPhase('7B', 'Payments Domain',
+  'Model a payment lifecycle as a state machine with a ledger and a reconciliation report.', 'core', `
++Fundamentals|Payment lifecycle|Authorize, capture, void, refund, settlement; states and legal transitions
++Fundamentals|Card network roles|Cardholder, merchant, acquirer, issuer, scheme, PSP/gateway
++Fundamentals|Payment gateways and PSPs|How CyberSource and Mastercard MPGS differ; hosted vs direct integration
++Authentication|3-D Secure and SCA|Challenge vs frictionless flow, liability shift, redirects and callbacks
++Compliance|PCI DSS scope|Never storing PAN or CVV, SAQ types, reducing scope
++Compliance|Tokenization and hosted fields|Vaulting, network tokens, what the backend may see
++Money|Money modeling|Minor units, BigDecimal, currencies, rounding, FX
++Accounting|Double-entry ledger|Accounts, journals, immutability, balance invariants
++Accounting|Reconciliation and settlement files|Matching gateway reports to the ledger, handling breaks
++Disputes|Chargebacks and disputes|Reason codes, evidence windows, ledger impact
++Integration|Webhooks|Signature verification, replay protection, retries, ordering
++Integration|Idempotency in payment APIs|Idempotency keys, duplicate submits, repeat-safe operations
++Integration|Timeouts and unknown outcomes|Status queries, reversals, reconciliation as the fallback
++Risk|Fraud and risk basics|Velocity checks, rules vs models, false positives
++Standards|ISO 20022 and ISO 8583 overview|Message formats and what they mean for an API layer
++Practice|Payment state-machine lab|Model the payment lifecycle as a state machine with tests, ledger entries and a reconciliation report|12
+`);
+
+defPhase('8', 'Production Spring Boot',
+  'Add production-grade logs, metrics and traces to PayVerse, with alerts tied to an SLO.', 'core', `
+Configuration|Profiles|Environment-specific runtime behavior
+Configuration|Environment variables|Externalizing configuration safely
+Configuration|Secrets|Secret management principles and avoiding secret leakage
+Configuration|External configuration|Config files, config servers and precedence
+Logging|SLF4J|Logging API and abstraction
+Logging|Logback|Configuration, appenders and levels
+Logging|Structured logging|Machine-readable logs and useful fields
+Logging|MDC|Correlation/request identifiers
++Logging|Log hygiene and PII masking|Never log card data or tokens, masking, retention
+Metrics|Actuator metrics|Expose useful application metrics
+Metrics|Micrometer|Metrics abstraction and instrumentation
+Metrics|Prometheus|Scraping and metric model
+Metrics|Grafana|Dashboards and operational visualization
+Tracing|Distributed tracing|Trace/span model and propagation
+Tracing|OpenTelemetry|Instrumentation and telemetry concepts
+Tracing|Zipkin/Jaeger|Trace collection and visualization concepts
++Alerting|SLIs, SLOs and error budgets|Defining good service-level indicators and targets
++Alerting|Alert design and runbooks|Symptom-based alerts, paging vs ticketing, one runbook per alert
++Operations|Incident response and postmortems|Roles, timeline, blameless review, follow-up actions
+Practice|Observability lab|Add logs, metrics and traces to PayVerse
+`);
+
+defPhase('9', 'Distributed Systems',
+  'Build async payment processing with retries, idempotency and a dead-letter queue.', 'core', `
+Communication|REST|Service-to-service HTTP APIs and contracts
+Communication|gRPC|RPC, protobuf and when it fits
+Communication|WebSockets|Bidirectional communication and use cases
+Messaging|RabbitMQ|Exchanges, queues, bindings, acknowledgements
+Messaging|Kafka|Topics, partitions, offsets and consumers
+Messaging|Delivery semantics|At-most-once, at-least-once, effectively-once concepts
+Messaging|Acknowledgements|Consumer acknowledgement behavior
+Messaging|Retries|Retry strategy and poison messages
+Messaging|Dead-letter queues|Handling messages that cannot be processed
+Messaging|Ordering|When ordering matters and how partitions/queues affect it
+Messaging|Consumer groups|Scaling consumers and partition ownership
++Messaging|Spring Kafka and Spring AMQP|Listeners, error handlers, retry topics, transactions
++Messaging|Schema evolution|Avro or Protobuf, compatibility rules, schema registry
++Messaging|Kafka transactions and exactly-once|What the guarantee covers and where it stops
+Reliability|Idempotency|Safe handling of duplicate requests/messages
+Reliability|Timeouts|Preventing indefinitely blocked calls
+Reliability|Exponential backoff|Retry timing and jitter concepts
+Reliability|Circuit breakers|Fail fast when dependencies degrade
+Reliability|Bulkheads|Isolating resources between workloads
+Reliability|Rate limiting|Protecting services from overload
+Reliability|Load balancing|Distributing requests across instances
+Reliability|Service discovery|Finding service instances dynamically
++Reliability|Resilience4j in practice|Circuit breaker, retry, rate limiter, bulkhead and time limiter configured and tested
++Reliability|Backpressure and load shedding|Bounded queues, dropping work deliberately, protecting latency
+Practice|Async payment flow|Implement asynchronous payment processing with retry/idempotency/DLQ
+`);
+
+defPhase('9B', 'Distributed Systems Theory',
+  'Explain consistency, replication and consensus trade-offs, then prove invariants hold under injected failures.', 'core', `
++Fundamentals|Failure models and the fallacies|Crash, omission, partition, Byzantine; why networks are not reliable
++Time|Clocks, ordering and causality|Lamport and vector clocks, clock skew, why timestamps lie
++Consistency|CAP and PACELC|What the theorem says and what it does not
++Consistency|Consistency models|Linearizable, sequential, causal, eventual; read-your-writes
++Replication|Leader/follower and multi-leader|Replication lag, failover, split brain
++Replication|Quorums and leaderless replication|R+W>N, hinted handoff, read repair
++Partitioning|Sharding and consistent hashing|Hot keys, rebalancing, secondary indexes
++Consensus|Raft overview|Leader election, log replication, what etcd and ZooKeeper give you
++Transactions|Isolation in distributed databases|Snapshot isolation, write skew, serializability
++Processing|Batch vs stream processing|Event time, windows, exactly-once claims
++Reading|DDIA reading pass|Read the book and map each concept to a decision in PayVerse|14
++Practice|Failure-injection lab|Kill nodes, delay and duplicate messages in the async flow and show the invariants still hold
+`);
+
+defPhase('10', 'Microservices and Distributed Transactions',
+  'Split PayVerse by bounded context and implement a payment/order Saga with Outbox.', 'core', `
+Microservice Foundations|Modular monolith|Use modules and boundaries before splitting services
+Microservice Foundations|Service boundaries|Identify cohesive responsibilities and coupling
++Microservice Foundations|When not to use microservices|Cost of distribution, team size, a written decision record
++Microservice Foundations|Strangler fig migration|Incremental extraction, routing old and new side by side
+DDD|Bounded contexts|Define domain boundaries and language
+Data|Database per service|Ownership and consistency implications
++Data|Read models and CQRS views|Reporting across services without shared tables
+API|API contracts|Versioning, compatibility and consumer expectations
+Communication|Synchronous communication|When request/response is appropriate
+Communication|Asynchronous communication|When events/messages are appropriate
+Platform|API Gateway|Routing, auth, rate limiting and edge concerns
++Platform|Backend for frontend|Aggregation, per-client APIs, where logic should not live
+Platform|Service discovery|Registration and discovery concepts
+Platform|Centralized configuration|Managing distributed service configuration
+Distributed Transactions|2PC|Understand distributed commit and its tradeoffs
+Distributed Transactions|Saga choreography|Event-driven distributed workflow
+Distributed Transactions|Saga orchestration|Central workflow coordinator
+Reliability|Outbox pattern|Atomically persist state change and event intent
+Reliability|Inbox pattern|Deduplicate/track incoming messages
+Reliability|Idempotency|Design safe repeated operations
+Practice|PayVerse Saga|Implement order/payment workflow with Outbox + Saga
+`);
+
+defPhase('11', 'System Design',
+  'Design ten classic systems with estimates, trade-offs and failure handling.', 'core', `
+Design Process|Requirements|Functional and non-functional requirements
+Design Process|Capacity estimation|Traffic, storage, bandwidth and growth estimates
++Design Process|Latency numbers and estimation drills|Memorize orders of magnitude, practice quick estimates
++Design Process|Trade-off write-ups|One-page decision notes: options, choice, rejected alternatives
+API Design|API contracts|Endpoints, payloads, errors, versioning
+Data Design|Data model|Entities, relationships, access patterns
+Architecture|High-level architecture|Services, dependencies and data flow
+Scaling|Horizontal scaling|Stateless services and load balancing
+Caching|Caching|Cache-aside, TTL, invalidation, consistency tradeoffs
+Databases|Database selection|Relational vs NoSQL based on access patterns
+Messaging|Asynchronous architecture|Queues/events and decoupling
+Reliability|Failure handling|Timeouts, retries, circuit breakers, graceful degradation
+Observability|Operational design|Logs, metrics, traces, alerts
+Practice|System Design 1: URL Shortener|Requirements, estimates, data model, API, scaling, failure modes|3
+Practice|System Design 2: Rate Limiter|Algorithms, distributed counters, placement, failure modes|3
+Practice|System Design 3: Notification System|Fan-out, retries, preferences, delivery guarantees|3
+Practice|System Design 4: File Storage|Chunking, metadata, replication, resumable uploads|3
+Practice|System Design 5: Chat System|Connections, ordering, presence, storage, fan-out|3
+Practice|System Design 6: Payment System|Ledger, idempotency, reconciliation, third-party gateways|4
+Practice|System Design 7: E-commerce System|Catalog, cart, inventory, orders, checkout consistency|3
+Practice|System Design 8: Ride-sharing System|Geo indexing, matching, location updates, surge|3
+Practice|System Design 9: Video Streaming|Upload pipeline, transcoding, CDN, adaptive bitrate|3
+Practice|System Design 10: Distributed Job Scheduler|Scheduling, leases, retries, exactly-once effects|3
+`);
+
+defPhase('12', 'Architecture',
+  'Refactor PayVerse around clear domain, application and infrastructure boundaries.', 'core', `
+Principles|SOLID|Apply each principle to real code and recognize misuse
+Patterns|Strategy|Encapsulate interchangeable algorithms/behavior
+Patterns|Factory|Encapsulate object creation
+Patterns|Abstract Factory|Create related object families
+Patterns|Builder|Construct complex immutable objects
+Patterns|Adapter|Integrate incompatible interfaces
+Patterns|Decorator|Add behavior without modifying the target
+Patterns|Proxy|Control access/intercept behavior
+Patterns|Template Method|Share algorithm structure with customizable steps
+Patterns|Chain of Responsibility|Pass requests through handlers
+Patterns|Observer|Publish/subscribe behavior within a model
+Patterns|Command|Encapsulate operations as objects
+Patterns|State|Change behavior based on state
+Patterns|Repository|Abstract persistence access appropriately
+DDD|Domain-Driven Design|Entities, value objects, aggregates, domain services, repositories
+Architecture|Clean Architecture|Dependency direction and use-case boundaries
+Architecture|Hexagonal Architecture|Ports and adapters
+Architecture|Event-driven architecture|Events, consumers, coupling and eventual consistency
++Architecture|CQRS and event sourcing|When they pay off and when they hurt
++Architecture|Architecture decision records|Context, decision, consequences; keeping an ADR log in the repo
++Architecture|Enforcing boundaries|ArchUnit or Spring Modulith tests that fail on illegal dependencies
+Practice|PayVerse architecture refactor|Refactor toward explicit domain/application/infrastructure boundaries
+`);
+
+defPhase('SM', 'Senior Mindset',
+  'For every feature, document why it exists, the alternatives rejected and the failure handling.', 'core', `
+Judgment|Engineering decisions|Define problem, requirements, tradeoffs, failure modes, scalability, consistency, operability, monitoring and cost
+Judgment|Why over how|For every design, explain why it exists and what alternatives were rejected
++Judgment|Failure-mode analysis|What breaks, how you would know, blast radius, how to recover
++Judgment|Operability and cost|Runbooks, on-call load, cost per transaction, build vs buy
++Communication|Writing design docs|Problem, options, decision, rollout plan, open questions
++Communication|Code review|Giving and receiving review, a personal review checklist
++Communication|Estimating and scoping|Ranges not points, naming risks, slicing work thin
++Communication|Presenting technical work|A 10-minute walkthrough of a design for mixed audiences
++Leadership|Teaching and mentoring|Explain one topic per phase to someone else, in writing or aloud
++Practice|PayVerse design doc|Full design doc for the microservice split: alternatives, failure modes, rollout plan|10
+`);
+
+defPhase('13', 'Docker, Kubernetes and Cloud',
+  'Containerize PayVerse, automate builds, and deploy to Kubernetes or OpenShift on a cloud account.', 'core', `
+Docker|Images|Layers, Dockerfile and image construction
+Docker|Containers|Runtime isolation and lifecycle
+Docker|Layers|Caching and image optimization
+Docker|Networks|Container-to-container communication
+Docker|Volumes|Persistent data
+Docker|Docker Compose|Local multi-service environments
+CI/CD|GitLab CI|Build, test, package, publish and deploy pipelines
++CI/CD|Pipeline security and artifact registries|Signed images, scanning, secrets in CI, promotion between environments
+Kubernetes|Pod|Basic workload unit
+Kubernetes|Deployment|Replica management and rolling updates
+Kubernetes|Service|Stable network endpoint for workloads
+Kubernetes|Ingress|External HTTP routing
+Kubernetes|ConfigMap|Non-secret configuration
+Kubernetes|Secret|Sensitive configuration concepts
+Kubernetes|HPA|Horizontal autoscaling
+Kubernetes|Probes|Readiness, liveness and startup probes
+Kubernetes|Resources|Requests/limits and scheduling implications
+Kubernetes|Rolling deployment|Safe deployment and rollback concepts
++Kubernetes|Helm and Kustomize|Templating manifests, per-environment overrides
+OpenShift|OpenShift basics|Projects, routes and platform-specific concepts
+Cloud|AWS fundamentals|Compute, networking, storage, IAM and managed services overview
++Cloud|Cloud networking|VPCs, subnets, security groups, load balancers, private endpoints
++Cloud|IAM and least privilege|Roles, policies, workload identity, avoiding long-lived keys
++Cloud|Managed data and messaging services|RDS, managed Kafka or MQ, S3, SQS: what you stop operating
++Cloud|Infrastructure as code|Terraform basics, state, modules, plan before apply
++Deployment|Blue/green, canary and feature flags|Releasing without downtime, rollback paths, flag hygiene
++Operations|Cost awareness|Right-sizing, egress costs, cost per request
+Practice|Deploy PayVerse|Containerize and deploy PayVerse to Kubernetes/OpenShift|14
+`);
+
+defPhase('14', 'Testing',
+  'Build a layered unit, integration and contract test strategy.', 'core', `
+Unit Testing|JUnit|Tests, lifecycle, assertions, parameterized tests
+Unit Testing|Mockito|Mocks, verification and test isolation
+Unit Testing|Test doubles|Mocks vs stubs vs spies vs fakes
+Integration Testing|Spring Boot Test|Application-context and web integration testing
+Integration Testing|Testcontainers|Real dependencies in disposable containers
+Integration Testing|PostgreSQL tests|Test persistence against a real database
+Integration Testing|Kafka tests|Test messaging behavior
+Integration Testing|Redis tests|Test caching and distributed state behavior
+Contract Testing|Consumer/provider contracts|Prevent breaking service-to-service API changes
+Test Strategy|Test pyramid|Balance unit, integration, contract and end-to-end tests
++Test Strategy|Test data builders and fixtures|Readable setup, avoiding shared mutable fixtures
++Test Strategy|Flaky tests, time and concurrency|Controlling clocks, awaiting async work, finding the race
++Test Strategy|Mutation and property-based testing|PIT mutation score, jqwik properties for money and state machines
+Practice|PayVerse test suite|Create a layered test strategy for the payment system
+`);
+
+defPhase('15', 'Performance Engineering',
+  'Use JMeter, Gatling or k6 with JFR to find and fix a bottleneck.', 'core', `
+Performance|Latency|Measure response-time distributions and tail latency
+Performance|Throughput|Requests/jobs per second and capacity
+Performance|CPU|Find CPU hotspots and saturation
+Performance|Memory|Allocation, retention and memory pressure
+Performance|GC|Identify collection impact on latency
+Performance|Thread pools|Queueing, starvation and sizing
+Performance|Connection pools|Database/HTTP pool exhaustion and tuning
+Performance|Database queries|Slow-query analysis and indexing
+Performance|Caching|Measure cache hit/miss behavior and tradeoffs
+Load Testing|JMeter|Create repeatable load scenarios
+Load Testing|Gatling/k6|Modern load-testing alternatives
+Profiling|JFR|Profile production-like workloads
++Performance|Percentiles and coordinated omission|Why averages hide problems and how load tools mislead
++Performance|Capacity planning and the USE method|Utilization, saturation, errors per resource
++Profiling|Profiling safely in production|Low-overhead sampling, continuous profiling, what to avoid
+Practice|Performance investigation|Find and fix a deliberately slow PayVerse endpoint
+`);
+
+defPhase('16', 'AI Engineering',
+  'Add one AI feature to PayVerse with evaluation and monitoring.', 'stretch', `
+LLM Foundations|LLM APIs|Prompts, messages, parameters, tokens and API integration
+Embeddings|Embeddings|Semantic representation and similarity search
+RAG|Retrieval-Augmented Generation|Ingestion, chunking, retrieval, context assembly and generation
+Vector Databases|Vector search|Similarity search, metadata filtering and indexing concepts
+Agents|AI agents|Tool use, planning loops and state management concepts
+Evaluation|AI evaluation|Correctness, relevance, hallucination and task-specific metrics
+Production AI|AI observability|Latency, token usage, cost, traces and failures
+Production AI|Guardrails|Validation, structured outputs, permissions and safe tool use
++Production AI|Prompt injection and data leakage|Untrusted input in prompts, tool permissions, PII handling
++Production AI|Cost and latency budgets|Caching, model choice, timeouts and fallbacks for LLM calls
+Practice|AI-powered PayVerse|Add one useful AI feature with evaluation and monitoring
+`);
+
+defPhase('17', 'Interview Readiness',
+  'Pass a coding round, a system design round and a behavioural round for a senior backend role. Keep a weekly habit of 3 problems from Phase 1 onward.', 'core', `
++DSA|Arrays, hashing and two pointers|About 8 problems; state complexity out loud|4
++DSA|Sliding window and prefix sums|About 8 problems|4
++DSA|Stacks, queues and monotonic structures|About 8 problems|4
++DSA|Linked lists and fast/slow pointers|About 6 problems|3
++DSA|Trees, BST and traversals|About 10 problems|4
++DSA|Graphs: BFS, DFS and topological sort|About 10 problems|4
++DSA|Heaps and top-K|About 6 problems|3
++DSA|Binary search patterns|About 8 problems|3
++DSA|Recursion, backtracking and DP basics|About 12 problems|5
++Java Interview|Core Java and Spring question bank|Collections, concurrency, JVM, Spring internals, JPA pitfalls: answer each aloud in under two minutes|8
++Behavioral|Six STAR stories|Conflict, failure, ownership, ambiguity, leadership, measurable impact|4
++Portfolio|PayVerse README, diagrams and demo|Architecture diagram, ADR index, load-test results, a five-minute demo script|6
++Portfolio|CV and LinkedIn rewrite|Impact bullets with numbers, stack keywords, links to the repo|3
++Mock|Five mock coding interviews|Timed, with another person or recorded, written self-review|5
++Mock|Three mock system design interviews|45 minutes each, whiteboard or diagram, written self-review|4
+`);
+
+/* ===== CAPSTONE: PayVerse ===== */
+const CAP = {};
+const CAP_ORDER = [];
+function defCap(n, title, prereq, hrs, stretch, crit) {
+  const id = 'L' + n;
+  CAP[id] = { id: id, n: n, title: title, prereq: prereq, hrs: hrs, stretch: stretch, crit: crit };
+  CAP_ORDER.push(id);
+}
+defCap(1, 'Spring Boot Payment API', ['5'], 12, false, [
+  'POST /payments and GET /payments/{id} with validation and a consistent error format',
+  'Service-layer unit tests cover success, validation failure and a duplicate request',
+  'OpenAPI spec is published and the README explains how to run the service',
+  'ADR written: why this package structure']);
+defCap(2, 'PostgreSQL and JPA', ['6'], 12, false, [
+  'Flyway migrations create the schema from scratch',
+  'Payments and ledger entries are persisted with optimistic locking',
+  'One slow query found with EXPLAIN and fixed with an index',
+  'An N+1 problem reproduced in a test and removed']);
+defCap(3, 'Security and JWT', ['7'], 10, false, [
+  'JWT login and role-based access protect every endpoint',
+  'Test proves user A cannot read user B\'s payment',
+  'OWASP API Top 10 checklist reviewed against the code',
+  'Secrets come from the environment; none are committed to Git']);
+defCap(4, 'CyberSource and MPGS', ['7B'], 25, false, [
+  'A gateway interface with two adapters behind it',
+  'Authorize, capture and refund work against each gateway sandbox',
+  'Webhook endpoint verifies signatures and ignores replays',
+  'Unknown-outcome path is covered by a test and a reconciliation job']);
+defCap(5, 'Redis', ['6B'], 8, false, [
+  'Idempotency keys stored in Redis with a TTL',
+  'Cache hit ratio measured on a read endpoint',
+  'A stampede test shows the fix works',
+  'Behaviour when Redis is down is documented and tested']);
+defCap(6, 'RabbitMQ or Kafka', ['9'], 15, false, [
+  'Payment authorization runs asynchronously through a broker',
+  'Retry with backoff and a dead-letter queue are in place',
+  'Duplicate-message test passes: the consumer is idempotent',
+  'Resilience4j circuit breaker wraps the gateway calls']);
+defCap(7, 'Idempotency and Outbox', ['10'], 15, false, [
+  'Outbox table and relay publish events atomically with the state change',
+  'Inbox or dedup table on the consumer',
+  'Crash test: kill the relay mid-publish and show no lost or duplicate effects',
+  'Order-to-payment Saga with compensation implemented']);
+defCap(8, 'Microservices', ['12'], 30, false, [
+  'Services split along bounded contexts, one database each',
+  'API gateway and service discovery in place',
+  'Contract tests between at least two services',
+  'ADR on boundaries and the alternatives you rejected']);
+defCap(9, 'Observability', ['8'], 12, false, [
+  'Structured logs carry a correlation ID across services',
+  'A request-rate, error and duration dashboard exists in Grafana',
+  'One payment can be followed end to end in a distributed trace',
+  'Alert on the error-rate SLO with a linked runbook']);
+defCap(10, 'Docker and Kubernetes/OpenShift', ['13'], 20, false, [
+  'Every service has a small, non-root container image',
+  'CI pipeline builds, tests, scans and publishes images',
+  'Deployed with probes, resource limits and a rolling update',
+  'Rollback rehearsed once and written down']);
+defCap(11, 'Load testing and performance', ['15'], 12, false, [
+  'Repeatable load test script is in the repo',
+  'p95 and p99 latency measured before and after a fix',
+  'Bottleneck identified with a profile, not a guess',
+  'Capacity note: how much load one instance handles']);
+defCap(12, 'AI-powered operations', ['16'], 15, true, [
+  'One AI feature added behind a feature flag',
+  'Offline evaluation set with a pass-rate you can quote',
+  'Token cost and latency visible on a dashboard',
+  'Prompt-injection test cases written and passing']);
+
+/* ===== SEQUENCE: the order the plan runs in ===== */
+const SEQ = [
+  ['p', '0'], ['p', '1'], ['p', '2'], ['p', '3'], ['p', '4'], ['p', '5'], ['c', 'L1'],
+  ['p', '6'], ['c', 'L2'], ['p', '6B'], ['c', 'L5'], ['p', '7'], ['c', 'L3'], ['p', '7B'], ['c', 'L4'],
+  ['p', '8'], ['c', 'L9'], ['p', '9'], ['c', 'L6'], ['p', '9B'], ['p', '10'], ['c', 'L7'],
+  ['p', '11'], ['p', '12'], ['c', 'L8'], ['p', 'SM'], ['p', '13'], ['c', 'L10'],
+  ['p', '14'], ['p', '15'], ['c', 'L11'], ['p', '16'], ['c', 'L12'], ['p', '17']
+];
+const ORIGINAL_COUNTS = { '1': 33, '2': 17, '3': 15, '4': 13, '5': 12, '6': 28, '7': 15, '8': 16, '9': 20, '10': 17, '11': 21, '12': 19, '13': 20, '14': 11, '15': 13, '16': 9 };
+
+/* ===== STATE ===== */
+const STAT = ['Not started', 'Learning', 'Practicing', 'Done'];
+const REVIEW_DAYS = [3, 10, 30, 90];
+const LOG_KINDS = ['Study', 'Build', 'DSA', 'Review', 'Reading'];
+const LS_KEY = 'backend-roadmap-tracker-v1';
+const S = {
+  p: { topics: {}, caps: {}, cfg: { start: '', hpw: 15, skip: false }, u: 0 },
+  l: { entries: [], u: 0 }
+};
+const ui = { tab: 'today', phase: null, filter: 'all', q: '', open: new Set(), flash: null, confirm: null, msg: '', saveState: 'loading' };
+const TABS = [['today', 'Today'], ['roadmap', 'Roadmap'], ['timeline', 'Timeline'], ['capstone', 'Capstone'], ['log', 'Log'], ['data', 'Data']];
+
+/* ===== DATES ===== */
+const pad2 = function (n) { return String(n).padStart(2, '0'); };
+const ymd = function (d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+const pd = function (s) { const a = s.split('-').map(Number); return new Date(a[0], a[1] - 1, a[2]); };
+const todayStr = function () { return ymd(new Date()); };
+const addDays = function (s, n) { const d = pd(s); d.setDate(d.getDate() + n); return ymd(d); };
+const daysBetween = function (a, b) { return Math.round((pd(b) - pd(a)) / 864e5); };
+const weekStart = function (s) { return addDays(s, -((pd(s).getDay() + 6) % 7)); };
+function fmtDate(s, withYear) {
+  const d = pd(s);
+  const o = { day: 'numeric', month: 'short' };
+  if (withYear || d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+  return d.toLocaleDateString(undefined, o);
+}
+function nextMonday() { const t = todayStr(); return addDays(t, (8 - pd(t).getDay()) % 7); }
+function fmtH(h) { return (Math.round(h * 10) / 10).toString(); }
+
+/* ===== DOM HELPER ===== */
+function h(tag, a) {
+  const e = document.createElement(tag);
+  if (a) {
+    for (const k in a) {
+      const v = a[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') e.className = v;
+      else if (k === 'text') e.textContent = v;
+      else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), v);
+      else if (k === 'value' || k === 'checked' || k === 'selected' || k === 'disabled') e[k] = v;
+      else e.setAttribute(k, v === true ? '' : v);
+    }
+  }
+  for (let i = 2; i < arguments.length; i++) add(e, arguments[i]);
+  return e;
+}
+function add(e, c) {
+  if (c === null || c === undefined || c === false) return;
+  if (Array.isArray(c)) { c.forEach(function (x) { add(e, x); }); return; }
+  e.appendChild(typeof c === 'object' ? c : document.createTextNode(String(c)));
+}
+const $ = function (id) { return document.getElementById(id); };
+
+/* ===== PERSISTENCE ===== */
+function normP(d) {
+  const p = { topics: {}, caps: {}, cfg: { start: nextMonday(), hpw: 15, skip: false }, u: 0 };
+  if (d && typeof d === 'object') {
+    if (d.topics && typeof d.topics === 'object') p.topics = d.topics;
+    if (d.caps && typeof d.caps === 'object') p.caps = d.caps;
+    if (d.cfg && typeof d.cfg === 'object') {
+      if (typeof d.cfg.start === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.cfg.start)) p.cfg.start = d.cfg.start;
+      if (d.cfg.hpw > 0 && d.cfg.hpw <= 80) p.cfg.hpw = d.cfg.hpw;
+      p.cfg.skip = !!d.cfg.skip;
+    }
+    p.u = +d.u || 0;
+  }
+  return p;
+}
+function normL(d) {
+  const l = { entries: [], u: 0 };
+  if (d && Array.isArray(d.entries)) l.entries = d.entries.filter(function (e) { return e && typeof e.d === 'string' && e.m > 0; });
+  if (d) l.u = +d.u || 0;
+  return l;
+}
+function lsLoad() { try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch (e) { return null; } }
+function lsSave() { try { localStorage.setItem(LS_KEY, JSON.stringify({ p: S.p, l: S.l })); } catch (e) { /* storage unavailable */ } }
+function hasData(k) { return k === 'p' ? (Object.keys(S.p.topics).length + Object.keys(S.p.caps).length) > 0 : S.l.entries.length > 0; }
+
+let refs = null;
+const dirty = { p: false, l: false };
+let timer = null;
+let busy = false;
+
+function setSave(state) {
+  ui.saveState = state;
+  const el = $('savechip');
+  if (!el) return;
+  const map = {
+    loading: ['Connecting…', 'wait'], cloud: ['Saved to your account', 'ok'], saving: ['Saving…', 'wait'],
+    local: ['Saved on this device only', 'warn'], error: ['Cloud save failed, kept on this device', 'warn']
+  };
+  const m = map[state] || map.local;
+  el.textContent = m[0];
+  el.setAttribute('data-k', m[1]);
+}
+function touch(k) {
+  dirty[k] = true;
+  S[k].u = Date.now();
+  lsSave();
+  if (!refs) { setSave('local'); return; }
+  setSave('saving');
+  clearTimeout(timer);
+  timer = setTimeout(flush, 700);
+}
+async function flush() {
+  if (!refs) return;
+  if (busy) { timer = setTimeout(flush, 400); return; }
+  busy = true;
+  try {
+    const keys = ['p', 'l'];
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      if (dirty[k]) {
+        dirty[k] = false;
+        try { await refs[k].set(JSON.parse(JSON.stringify(S[k]))); } catch (e) { dirty[k] = true; throw e; }
+      }
+    }
+    setSave('cloud');
+  } catch (e) {
+    setSave('error');
+    if (e && e.code === 'unavailable') { clearTimeout(timer); timer = setTimeout(flush, 8000); }
+  } finally { busy = false; }
+}
+async function pull(first) {
+  const r = await Promise.all([refs.p.get(), refs.l.get()]);
+  let changed = false;
+  const rp = r[0].exists ? r[0].data() : null;
+  const rl = r[1].exists ? r[1].data() : null;
+  if (rp && (+rp.u || 0) > (S.p.u || 0)) { S.p = normP(rp); changed = true; }
+  else if (first && hasData('p') && (!rp || (S.p.u || 0) > (+rp.u || 0))) dirty.p = true;
+  if (rl && (+rl.u || 0) > (S.l.u || 0)) { S.l = normL(rl); changed = true; }
+  else if (first && hasData('l') && (!rl || (S.l.u || 0) > (+rl.u || 0))) dirty.l = true;
+  if (changed) { lsSave(); render(); }
+  if (dirty.p || dirty.l) flush(); else setSave('cloud');
+}
+async function initDb() {
+  try {
+    if (!window.claude || !window.claude.use) { setSave('local'); return; }
+    const got = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    const db = got[0], user = got[1];
+    const id = user ? await user.id() : null;
+    if (!db || !id) { setSave('local'); return; }
+    refs = { p: db.doc('data/users/' + id + '/progress'), l: db.doc('data/users/' + id + '/log') };
+    await pull(true);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && refs && !dirty.p && !dirty.l && !busy) pull(false).catch(function () { });
+    });
+  } catch (e) { refs = null; setSave('local'); }
+}
+
+/* ===== MODEL HELPERS ===== */
+function rec(id) { return S.p.topics[id] || (S.p.topics[id] = { s: 0 }); }
+function peek(id) { return S.p.topics[id] || { s: 0 }; }
+function capRec(id) { return S.p.caps[id] || (S.p.caps[id] = { c: [], link: '', d: '' }); }
+function capPeek(id) { return S.p.caps[id] || { c: [], link: '', d: '' }; }
+function plabel(id) { return id === 'SM' ? 'Senior' : 'Phase ' + id; }
+function allTopics() { const out = []; PH_ORDER.forEach(function (id) { PH[id].topics.forEach(function (t) { out.push(t); }); }); return out; }
+const TOPIC = {};
+allTopics().forEach(function (t) { TOPIC[t.id] = t; });
+
+function blockInfo(b) {
+  if (b[0] === 'p') {
+    const ph = PH[b[1]];
+    const done = ph.topics.filter(function (t) { return peek(t.id).s === 3; });
+    return {
+      kind: 'p', id: b[1], key: 'p:' + b[1], label: plabel(b[1]), title: ph.title, hrs: ph.hrs, stretch: ph.prio === 'stretch',
+      total: ph.topics.length, done: done.length, hrsDone: done.reduce(function (a, t) { return a + t.h; }, 0)
+    };
+  }
+  const c = CAP[b[1]];
+  const cr = capPeek(c.id);
+  const ticks = c.crit.filter(function (_, i) { return cr.c[i]; }).length;
+  const complete = !!cr.d;
+  return {
+    kind: 'c', id: b[1], key: 'c:' + b[1], label: 'PayVerse L' + c.n, title: c.title, hrs: c.hrs, stretch: c.stretch,
+    total: c.crit.length, done: complete ? c.crit.length : ticks, hrsDone: complete ? c.hrs : 0, complete: complete
+  };
+}
+function blocks() {
+  return SEQ.map(blockInfo).filter(function (b) { return !(S.p.cfg.skip && b.stretch); });
+}
+function blockComplete(b) { return b.kind === 'c' ? !!b.complete : b.done === b.total; }
+function overall() {
+  const bs = blocks();
+  let topics = 0, done = 0, hrs = 0, hrsDone = 0;
+  bs.forEach(function (b) {
+    if (b.kind === 'p') { topics += b.total; done += b.done; }
+    hrs += b.hrs; hrsDone += b.hrsDone;
+  });
+  return { topics: topics, done: done, hrs: hrs, hrsDone: hrsDone, bs: bs, pct: hrs ? hrsDone / hrs : 0 };
+}
+function currentBlock() {
+  const bs = blocks();
+  for (let i = 0; i < bs.length; i++) if (!blockComplete(bs[i])) return bs[i];
+  return null;
+}
+function dueDate(r) { return r.s === 3 && (r.rv || 0) < REVIEW_DAYS.length && r.bd ? addDays(r.bd, REVIEW_DAYS[r.rv || 0]) : null; }
+function dueReviews() {
+  const t = todayStr(), out = [];
+  allTopics().forEach(function (tp) {
+    const r = peek(tp.id), d = dueDate(r);
+    if (d && d <= t) out.push({ t: tp, due: d });
+  });
+  out.sort(function (a, b) { return a.due < b.due ? -1 : 1; });
+  return out;
+}
+function weekHours(ws) {
+  let m = 0, p = 0;
+  S.l.entries.forEach(function (e) { if (e.d >= ws && e.d <= addDays(ws, 6)) { m += e.m; p += (e.p || 0); } });
+  return { h: m / 60, problems: p };
+}
+
+/* ===== ACTIONS ===== */
+function setStatus(id, s) {
+  const r = rec(id), prev = r.s;
+  r.s = s;
+  if (s >= 1 && !r.st) r.st = todayStr();
+  if (s === 3) { r.d = todayStr(); r.bd = r.d; r.rv = 0; }
+  if (prev === 3 && s !== 3) { delete r.d; delete r.bd; delete r.rv; delete r.rd; }
+  touch('p');
+}
+function onStatus(id, v, sel) {
+  const r = peek(id);
+  if (v === 3 && (!r.e || r.e.trim().length < 8)) {
+    sel.value = String(r.s);
+    ui.open.add(id); ui.flash = id; ui.msg = 'Add evidence first. What proves you know this?';
+    render();
+    return;
+  }
+  ui.msg = '';
+  setStatus(id, v);
+  render();
+}
+function reviewTopic(id, ok) {
+  const r = rec(id);
+  if (ok) { r.rv = (r.rv || 0) + 1; r.rd = todayStr(); r.bd = todayStr(); }
+  else { r.rv = 0; r.bd = todayStr(); }
+  touch('p');
+  render();
+}
+function addLog(minutes, kind, note, problems) {
+  if (!(minutes > 0)) return false;
+  const e = { id: Date.now().toString(36), d: todayStr(), m: Math.round(minutes), k: kind, n: (note || '').slice(0, 160) };
+  if (kind === 'DSA' && problems > 0) e.p = Math.round(problems);
+  S.l.entries.push(e);
+  if (S.l.entries.length > 600) S.l.entries = S.l.entries.slice(-600);
+  touch('l');
+  return true;
+}
+
+/* ===== COMPONENTS ===== */
+function bar(frac, cls) {
+  const f = Math.max(0, Math.min(1, frac || 0));
+  return h('div', { class: 'bar ' + (cls || ''), role: 'progressbar', 'aria-valuenow': Math.round(f * 100), 'aria-valuemin': 0, 'aria-valuemax': 100 },
+    h('span', { style: 'width:' + (f * 100).toFixed(1) + '%' }));
+}
+function statusSelect(id) {
+  const r = peek(id);
+  const sel = h('select', { class: 'stat', 'data-s': r.s, 'aria-label': 'Status', onchange: function (e) { onStatus(id, +e.target.value, e.target); } },
+    STAT.map(function (n, i) { return h('option', { value: String(i) }, n); }));
+  sel.value = String(r.s);
+  return sel;
+}
+function topicRow(t, opts) {
+  opts = opts || {};
+  const r = peek(t.id);
+  const open = ui.open.has(t.id);
+  const due = dueDate(r);
+  const overdue = due && due <= todayStr();
+  const head = h('div', { class: 'trow-head' },
+    h('button', {
+      class: 'tname', type: 'button', 'aria-expanded': open ? 'true' : 'false', onclick: function () {
+        if (ui.open.has(t.id)) ui.open.delete(t.id); else ui.open.add(t.id);
+        render();
+      }
+    },
+      h('span', { class: 'caret', 'aria-hidden': 'true', text: open ? '▾' : '▸' }),
+      h('span', { class: 'tt' },
+        h('span', { class: 'tn' }, t.name, t.isNew ? h('span', { class: 'tag new', text: 'Added' }) : null, overdue ? h('span', { class: 'tag due', text: 'Review due' }) : null),
+        h('span', { class: 'td', text: t.desc }),
+        opts.showPhase ? h('span', { class: 'tp', text: plabel(t.phase) + ' · ' + t.cat }) : null)),
+    h('span', { class: 'th', title: 'Estimated hours', text: fmtH(t.h) + ' h' }),
+    statusSelect(t.id));
+  const row = h('div', { class: 'trow', 'data-s': r.s, id: 't-' + t.id.replace(/[^a-z0-9]/gi, '_') }, head);
+  if (open) row.appendChild(topicDetail(t));
+  return row;
+}
+function topicDetail(t) {
+  const r = peek(t.id);
+  const flash = ui.flash === t.id;
+  const ev = h('textarea', {
+    id: 'ev-' + t.id, rows: '2', class: 'in' + (flash ? ' flash' : ''), placeholder: 'What proves it? A repo link, a test name, or the question you answered from memory.',
+    value: r.e || '', oninput: function (e) { rec(t.id).e = e.target.value; touch('p'); }
+  });
+  const nt = h('textarea', { id: 'nt-' + t.id, rows: '3', class: 'in', placeholder: 'Notes, gotchas, things to revisit', value: r.n || '', oninput: function (e) { rec(t.id).n = e.target.value; touch('p'); } });
+  const rs = h('input', {
+    id: 'rs-' + t.id, type: 'url', class: 'in', placeholder: 'https://… resource, repo or article', value: r.r || '',
+    oninput: function (e) { rec(t.id).r = e.target.value.trim(); touch('p'); }, onchange: function () { render(); }
+  });
+  const link = r.r && /^https?:\/\//i.test(r.r) ? h('a', { href: r.r, target: '_blank', rel: 'noopener noreferrer', class: 'ext', text: 'Open resource ↗' }) : null;
+  const due = dueDate(r);
+  let meta = [];
+  if (r.st) meta.push('Started ' + fmtDate(r.st));
+  if (r.d) meta.push('Done ' + fmtDate(r.d));
+  if (r.s === 3) meta.push((r.rv || 0) >= REVIEW_DAYS.length ? 'All reviews complete' : 'Next review ' + fmtDate(due) + ' (' + ((r.rv || 0) + 1) + ' of ' + REVIEW_DAYS.length + ')');
+  const actions = h('div', { class: 'tactions' });
+  if (r.s !== 3) actions.appendChild(h('button', { type: 'button', class: 'btn primary', onclick: function () { const cur = peek(t.id); if (!cur.e || cur.e.trim().length < 8) { ui.flash = t.id; ui.msg = 'Add evidence first. What proves you know this?'; render(); return; } ui.msg = ''; setStatus(t.id, 3); render(); } }, 'Mark done'));
+  if (r.s === 3 && due && due <= todayStr()) {
+    actions.appendChild(h('button', { type: 'button', class: 'btn primary', onclick: function () { reviewTopic(t.id, true); } }, 'I recalled it'));
+    actions.appendChild(h('button', { type: 'button', class: 'btn', onclick: function () { reviewTopic(t.id, false); } }, 'I forgot'));
+  }
+  return h('div', { class: 'tdetail' },
+    ui.msg && flash ? h('p', { class: 'msg', role: 'alert', text: ui.msg }) : null,
+    h('label', { for: 'ev-' + t.id, class: 'lab' }, 'Evidence', h('span', { class: 'hint', text: 'Required to mark done' })), ev,
+    h('label', { for: 'nt-' + t.id, class: 'lab' }, 'Notes'), nt,
+    h('label', { for: 'rs-' + t.id, class: 'lab' }, 'Resource'), rs, link,
+    meta.length ? h('p', { class: 'meta', text: meta.join('  ·  ') }) : null,
+    actions);
+}
+
+/* ===== VIEWS ===== */
+function viewToday() {
+  const o = overall();
+  const root = h('div', { class: 'view' });
+  const t = todayStr();
+  const start = S.p.cfg.start;
+  const elapsedWeeks = Math.max(0, daysBetween(start, t) / 7);
+  const planned = Math.min(o.hrs, elapsedWeeks * S.p.cfg.hpw);
+  const diff = o.hrsDone - planned;
+  let pace;
+  if (t < start) pace = 'Plan starts ' + fmtDate(start) + '.';
+  else if (Math.abs(diff) < 2) pace = 'On plan.';
+  else if (diff > 0) pace = fmtH(diff) + ' h ahead of plan.';
+  else pace = fmtH(-diff) + ' h behind plan.';
+
+  root.appendChild(h('section', { class: 'panel hero' },
+    h('div', { class: 'hero-top' },
+      h('div', null,
+        h('h2', { class: 'big', text: Math.round(o.pct * 100) + '%' }),
+        h('p', { class: 'sub', text: 'of planned effort done · ' + o.done + ' of ' + o.topics + ' topics' })),
+      h('div', { class: 'hero-side' },
+        h('p', null, h('strong', { text: fmtH(o.hrsDone) + ' of ' + fmtH(o.hrs) + ' h' }), ' estimated'),
+        h('p', { class: o.hrsDone - planned < -2 ? 'late' : 'ok', text: pace }))),
+    bar(o.pct, 'lg')));
+
+  // reviews due
+  const rv = dueReviews();
+  if (rv.length) {
+    const sec = h('section', { class: 'panel' }, h('h3', null, 'Reviews due ', h('span', { class: 'count', text: String(rv.length) })),
+      h('p', { class: 'sub', text: 'Answer from memory before you open the notes, then mark how it went.' }));
+    rv.slice(0, 6).forEach(function (x) {
+      const late = daysBetween(x.due, t);
+      sec.appendChild(h('div', { class: 'review' },
+        h('div', { class: 'rv-main' },
+          h('p', { class: 'rv-name', text: x.t.name }),
+          h('p', { class: 'td', text: x.t.desc }),
+          h('p', { class: 'meta', text: plabel(x.t.phase) + ' · ' + (late > 0 ? late + ' day' + (late > 1 ? 's' : '') + ' overdue' : 'due today') })),
+        h('div', { class: 'rv-btns' },
+          h('button', { type: 'button', class: 'btn primary', onclick: function () { reviewTopic(x.t.id, true); } }, 'Recalled'),
+          h('button', { type: 'button', class: 'btn', onclick: function () { reviewTopic(x.t.id, false); } }, 'Forgot'))));
+    });
+    if (rv.length > 6) sec.appendChild(h('p', { class: 'meta', text: (rv.length - 6) + ' more waiting.' }));
+    root.appendChild(sec);
+  }
+
+  // in progress + up next
+  const prog = [];
+  allTopics().forEach(function (tp) { const s = peek(tp.id).s; if (s === 1 || s === 2) prog.push(tp); });
+  const cur = currentBlock();
+  const sec2 = h('section', { class: 'panel' });
+  if (prog.length) {
+    sec2.appendChild(h('h3', null, 'In progress ', h('span', { class: 'count', text: String(prog.length) })));
+    prog.slice(0, 6).forEach(function (tp) { sec2.appendChild(topicRow(tp, { showPhase: true })); });
+  }
+  if (cur) {
+    if (cur.kind === 'p') {
+      const nxt = PH[cur.id].topics.filter(function (tp) { return peek(tp.id).s === 0; }).slice(0, 4);
+      sec2.appendChild(h('h3', { class: prog.length ? 'gap' : '' }, 'Up next · ', plabel(cur.id), ' ', cur.title));
+      if (nxt.length) nxt.forEach(function (tp) { sec2.appendChild(topicRow(tp)); });
+      else sec2.appendChild(h('p', { class: 'sub', text: 'Everything here is started. Finish the in-progress topics above.' }));
+      sec2.appendChild(h('button', { type: 'button', class: 'btn link', onclick: function () { ui.phase = cur.id; ui.tab = 'roadmap'; render(); } }, 'Open ' + plabel(cur.id) + ' →'));
+    } else {
+      const c = CAP[cur.id];
+      sec2.appendChild(h('h3', { class: prog.length ? 'gap' : '' }, 'Up next · PayVerse Level ' + c.n + ': ' + c.title));
+      sec2.appendChild(h('p', { class: 'sub', text: cur.done + ' of ' + cur.total + ' acceptance checks done. Estimated ' + c.hrs + ' h.' }));
+      sec2.appendChild(h('button', { type: 'button', class: 'btn link', onclick: function () { ui.tab = 'capstone'; render(); } }, 'Open Capstone →'));
+    }
+  } else {
+    sec2.appendChild(h('h3', null, 'Plan complete'));
+    sec2.appendChild(h('p', { class: 'sub', text: 'Every block in the plan is done. Keep the review cycle going.' }));
+  }
+  root.appendChild(sec2);
+
+  // this week
+  const ws = weekStart(t);
+  const wk = weekHours(ws);
+  const logSec = h('section', { class: 'panel' },
+    h('h3', null, 'This week'),
+    h('p', { class: 'sub' }, h('strong', { text: fmtH(wk.h) + ' h' }), ' logged of ' + S.p.cfg.hpw + ' h target · ' + wk.problems + ' DSA problems of 3'),
+    bar(wk.h / S.p.cfg.hpw), logForm());
+  root.appendChild(logSec);
+  return root;
+}
+
+function logForm() {
+  const min = h('input', { id: 'lg-min', type: 'number', min: '5', step: '5', class: 'in', placeholder: '60', 'aria-label': 'Minutes' });
+  const kind = h('select', { id: 'lg-kind', class: 'in', 'aria-label': 'Kind' }, LOG_KINDS.map(function (k) { return h('option', { value: k }, k); }));
+  const prob = h('input', { id: 'lg-prob', type: 'number', min: '0', class: 'in', placeholder: 'Problems', 'aria-label': 'Problems solved', hidden: true });
+  const note = h('input', { id: 'lg-note', type: 'text', maxlength: '160', class: 'in grow', placeholder: 'What did you work on?', 'aria-label': 'Note' });
+  kind.addEventListener('change', function () { prob.hidden = kind.value !== 'DSA'; });
+  const f = h('form', {
+    class: 'logform', onsubmit: function (e) {
+      e.preventDefault();
+      if (addLog(+min.value, kind.value, note.value, +prob.value)) { render(); }
+      else { min.focus(); }
+    }
+  },
+    h('label', { class: 'sr', for: 'lg-min' }, 'Minutes'), min, kind, prob, note,
+    h('button', { type: 'submit', class: 'btn primary' }, 'Log session'));
+  return f;
+}
+
+function viewRoadmap() {
+  const root = h('div', { class: 'view' });
+  const bs = blocks().filter(function (b) { return b.kind === 'p'; });
+  if (!ui.phase || !PH[ui.phase] || !bs.some(function (b) { return b.id === ui.phase; })) { const c = currentBlock(); ui.phase = c && c.kind === 'p' ? c.id : bs[0].id; }
+
+  const q = h('input', {
+    id: 'rm-q', type: 'search', class: 'in', placeholder: 'Search all topics', 'aria-label': 'Search topics', value: ui.q,
+    oninput: function (e) { ui.q = e.target.value; clearTimeout(q._t); q._t = setTimeout(function () { render(); const el = $('rm-q'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 250); }
+  });
+  const filters = [['all', 'All'], ['open', 'Open'], ['learning', 'In progress'], ['done', 'Done'], ['new', 'Added gaps']];
+  const fbar = h('div', { class: 'chips', role: 'group', 'aria-label': 'Filter topics' }, filters.map(function (f) {
+    return h('button', { type: 'button', class: 'chip' + (ui.filter === f[0] ? ' on' : ''), 'aria-pressed': ui.filter === f[0] ? 'true' : 'false', onclick: function () { ui.filter = f[0]; render(); } }, f[1]);
+  }));
+  root.appendChild(h('div', { class: 'toolbar' }, q, fbar));
+
+  const pass = function (t) {
+    const s = peek(t.id).s;
+    if (ui.filter === 'open') return s !== 3;
+    if (ui.filter === 'learning') return s === 1 || s === 2;
+    if (ui.filter === 'done') return s === 3;
+    if (ui.filter === 'new') return t.isNew;
+    return true;
+  };
+
+  const layout = h('div', { class: 'rm' });
+  const side = h('nav', { class: 'phases', 'aria-label': 'Phases' });
+  bs.forEach(function (b) {
+    side.appendChild(h('button', { type: 'button', class: 'phbtn' + (ui.phase === b.id && !ui.q ? ' on' : ''), onclick: function () { ui.phase = b.id; ui.q = ''; render(); } },
+      h('span', { class: 'phl' }, h('span', { class: 'phn', text: b.label }), h('span', { class: 'phc', text: b.done + '/' + b.total })),
+      h('span', { class: 'pht', text: b.title }),
+      bar(b.total ? b.done / b.total : 0)));
+  });
+  layout.appendChild(side);
+
+  const main = h('div', { class: 'rmmain' });
+  if (ui.q.trim()) {
+    const needle = ui.q.trim().toLowerCase();
+    const hits = allTopics().filter(function (t) { return pass(t) && (t.name + ' ' + t.desc + ' ' + t.cat).toLowerCase().indexOf(needle) >= 0; });
+    main.appendChild(h('h2', { class: 'ph-title', text: hits.length + ' match' + (hits.length === 1 ? '' : 'es') }));
+    hits.slice(0, 80).forEach(function (t) { main.appendChild(topicRow(t, { showPhase: true })); });
+    if (hits.length > 80) main.appendChild(h('p', { class: 'meta', text: 'Showing the first 80. Narrow the search.' }));
+  } else {
+    const ph = PH[ui.phase];
+    const b = blockInfo(['p', ui.phase]);
+    main.appendChild(h('header', { class: 'ph-head' },
+      h('p', { class: 'eyebrow', text: plabel(ph.id) + (ph.prio === 'stretch' ? ' · stretch' : '') }),
+      h('h2', { class: 'ph-title', text: ph.title }),
+      h('p', { class: 'goal' }, h('strong', { text: 'Practical goal. ' }), ph.goal),
+      h('p', { class: 'meta', text: b.done + ' of ' + b.total + ' done · about ' + fmtH(ph.hrs) + ' h' }),
+      bar(b.total ? b.done / b.total : 0)));
+    const cats = [];
+    const by = {};
+    ph.topics.filter(pass).forEach(function (t) { if (!by[t.cat]) { by[t.cat] = []; cats.push(t.cat); } by[t.cat].push(t); });
+    if (!cats.length) main.appendChild(h('p', { class: 'sub', text: 'No topics match this filter in ' + plabel(ph.id) + '.' }));
+    cats.forEach(function (c) {
+      const list = by[c];
+      const done = list.filter(function (t) { return peek(t.id).s === 3; }).length;
+      main.appendChild(h('div', { class: 'cat' }, h('h3', null, c), h('span', { class: 'meta', text: done + '/' + list.length })));
+      list.forEach(function (t) { main.appendChild(topicRow(t)); });
+    });
+    const idx = bs.map(function (x) { return x.id; }).indexOf(ui.phase);
+    main.appendChild(h('div', { class: 'pager' },
+      idx > 0 ? h('button', { type: 'button', class: 'btn', onclick: function () { ui.phase = bs[idx - 1].id; render(); window.scrollTo(0, 0); } }, '← ' + bs[idx - 1].label) : h('span'),
+      idx < bs.length - 1 ? h('button', { type: 'button', class: 'btn', onclick: function () { ui.phase = bs[idx + 1].id; render(); window.scrollTo(0, 0); } }, bs[idx + 1].label + ' →') : h('span')));
+  }
+  layout.appendChild(main);
+  root.appendChild(layout);
+  return root;
+}
+
+function planRows() {
+  const bs = blocks();
+  const hpw = S.p.cfg.hpw, start = S.p.cfg.start;
+  let cum = 0;
+  const rows = bs.map(function (b) {
+    const from = addDays(start, Math.round(cum / hpw * 7));
+    cum += b.hrs;
+    const to = addDays(start, Math.max(0, Math.round(cum / hpw * 7) - 1));
+    return { b: b, from: from, to: to };
+  });
+  return { rows: rows, total: cum, end: addDays(start, Math.ceil(cum / hpw * 7)) };
+}
+
+function viewTimeline() {
+  const root = h('div', { class: 'view' });
+  const cfg = S.p.cfg;
+  const plan = planRows();
+  const o = overall();
+  const t = todayStr();
+
+  const start = h('input', { id: 'tl-start', type: 'date', class: 'in', value: cfg.start, 'aria-label': 'Start date', onchange: function (e) { if (e.target.value) { S.p.cfg.start = e.target.value; touch('p'); render(); } } });
+  const hpw = h('input', { id: 'tl-hpw', type: 'number', min: '2', max: '80', step: '1', class: 'in num', value: String(cfg.hpw), 'aria-label': 'Hours per week', onchange: function (e) { const v = +e.target.value; if (v >= 2 && v <= 80) { S.p.cfg.hpw = v; touch('p'); render(); } } });
+  const skip = h('input', { id: 'tl-skip', type: 'checkbox', checked: cfg.skip, onchange: function (e) { S.p.cfg.skip = e.target.checked; touch('p'); render(); } });
+  root.appendChild(h('section', { class: 'panel' },
+    h('h3', null, 'Plan settings'),
+    h('div', { class: 'settings' },
+      h('div', { class: 'field' }, h('label', { for: 'tl-start' }, 'Start date'), start),
+      h('div', { class: 'field' }, h('label', { for: 'tl-hpw' }, 'Hours per week'), hpw),
+      h('div', { class: 'field check' }, skip, h('label', { for: 'tl-skip' }, 'Skip stretch blocks (AI Engineering)'))),
+    h('p', { class: 'sub' }, 'Total scope is about ' + fmtH(plan.total) + ' h. At ' + cfg.hpw + ' h per week that finishes around ',
+      h('strong', { text: fmtDate(plan.end, true) }), ', ' + Math.ceil(plan.total / cfg.hpw) + ' weeks from the start.')));
+
+  // projection from recent pace
+  const recent = S.l.entries.filter(function (e) { return e.d > addDays(t, -28) && e.d <= t; }).reduce(function (a, e) { return a + e.m; }, 0) / 60 / 4;
+  const remaining = o.hrs - o.hrsDone;
+  const proj = h('p', { class: 'sub' });
+  if (S.l.entries.length >= 3 && recent > 0) {
+    proj.appendChild(document.createTextNode('Your last four weeks average ' + fmtH(recent) + ' h per week. At that pace the remaining ' + fmtH(remaining) + ' h finishes around '));
+    proj.appendChild(h('strong', { text: fmtDate(addDays(t, Math.ceil(remaining / recent * 7)), true) }));
+    proj.appendChild(document.createTextNode('.'));
+  } else proj.textContent = 'Log a few sessions and a pace-based projection shows up here.';
+  root.appendChild(h('section', { class: 'panel' }, h('h3', null, 'Planned vs actual'), timelineChart(plan, o), proj));
+
+  const tbl = h('table', { class: 'tbl' },
+    h('thead', null, h('tr', null, ['Block', 'Hours', 'Planned window', 'Progress'].map(function (x) { return h('th', { scope: 'col', text: x }); }))),
+    h('tbody', null, plan.rows.map(function (r) {
+      const b = r.b;
+      const done = blockComplete(b);
+      const active = !done && r.from <= t && t <= r.to;
+      const late = !done && r.to < t;
+      return h('tr', { class: done ? 'done' : (active ? 'active' : '') },
+        h('td', null, h('span', { class: 'blk' }, h('strong', { text: b.label }), ' ', b.title), b.stretch ? h('span', { class: 'tag', text: 'stretch' }) : null),
+        h('td', { class: 'num', text: fmtH(b.hrs) }),
+        h('td', { class: 'win', text: fmtDate(r.from) + ' to ' + fmtDate(r.to) }),
+        h('td', null, done ? h('span', { class: 'ok', text: 'Done' }) : h('span', { class: late ? 'late' : '', text: b.done + '/' + b.total + (late ? ' · past window' : active ? ' · now' : '') })));
+    })));
+  root.appendChild(h('section', { class: 'panel' }, h('h3', null, 'Schedule'), h('div', { class: 'scroll' }, tbl)));
+  return root;
+}
+
+function svgEl(tag, a) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in a) e.setAttribute(k, a[k]); return e; }
+function timelineChart(plan, o) {
+  const W = 640, H = 250, ml = 46, mr = 14, mt = 14, mb = 32;
+  const cfg = S.p.cfg;
+  const total = plan.total;
+  const t = todayStr();
+  const tw = daysBetween(cfg.start, t) / 7;
+  const planWeeks = total / cfg.hpw;
+  const xmax = Math.max(planWeeks, tw + 1);
+  const X = function (w) { return ml + (Math.max(0, w) / xmax) * (W - ml - mr); };
+  const Y = function (v) { return mt + (1 - v / total) * (H - mt - mb); };
+  const svg = svgEl('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart', role: 'img', 'aria-label': 'Planned versus actual cumulative hours' });
+  for (let i = 0; i <= 4; i++) {
+    const v = total * i / 4;
+    svg.appendChild(svgEl('line', { x1: ml, x2: W - mr, y1: Y(v), y2: Y(v), class: 'grid' }));
+    const tx = svgEl('text', { x: ml - 8, y: Y(v) + 4, class: 'axis', 'text-anchor': 'end' }); tx.textContent = Math.round(v) + ' h'; svg.appendChild(tx);
+  }
+  for (let i = 0; i <= 4; i++) {
+    const w = xmax * i / 4;
+    const tx = svgEl('text', { x: X(w), y: H - 10, class: 'axis', 'text-anchor': i === 0 ? 'start' : (i === 4 ? 'end' : 'middle') });
+    tx.textContent = fmtDate(addDays(cfg.start, Math.round(w * 7)));
+    svg.appendChild(tx);
+  }
+  svg.appendChild(svgEl('line', { x1: X(0), y1: Y(0), x2: X(planWeeks), y2: Y(total), class: 'plan' }));
+  // actual: step curve from completion dates
+  const ev = [];
+  blocks().forEach(function (b) {
+    if (b.kind === 'p') PH[b.id].topics.forEach(function (tp) { const r = peek(tp.id); if (r.s === 3 && r.d) ev.push({ d: r.d, h: tp.h }); });
+    else { const cr = capPeek(b.id); if (cr.d) ev.push({ d: cr.d, h: b.hrs }); }
+  });
+  ev.sort(function (a, b) { return a.d < b.d ? -1 : 1; });
+  let cum = 0;
+  let path = 'M' + X(0) + ' ' + Y(0);
+  ev.forEach(function (e) {
+    const w = daysBetween(cfg.start, e.d) / 7;
+    path += ' L' + X(w) + ' ' + Y(cum);
+    cum += e.h;
+    path += ' L' + X(w) + ' ' + Y(cum);
+  });
+  path += ' L' + X(tw) + ' ' + Y(cum);
+  svg.appendChild(svgEl('path', { d: path, class: 'actual', fill: 'none' }));
+  if (tw >= 0) {
+    svg.appendChild(svgEl('line', { x1: X(tw), x2: X(tw), y1: mt, y2: H - mb, class: 'today' }));
+    svg.appendChild(svgEl('circle', { cx: X(tw), cy: Y(cum), r: 4, class: 'dot' }));
+    const lb = svgEl('text', { x: X(tw) + (X(tw) > W - 80 ? -6 : 6), y: mt + 10, class: 'axis', 'text-anchor': X(tw) > W - 80 ? 'end' : 'start' });
+    lb.textContent = 'Today'; svg.appendChild(lb);
+  }
+  const legend = h('div', { class: 'legend' },
+    h('span', null, h('i', { class: 'sw plan' }), 'Planned at ' + cfg.hpw + ' h/week'),
+    h('span', null, h('i', { class: 'sw actual' }), 'Completed (' + fmtH(cum) + ' h)'));
+  return h('div', { class: 'chartwrap' }, svg, legend);
+}
+
+function viewCapstone() {
+  const root = h('div', { class: 'view' });
+  root.appendChild(h('section', { class: 'panel' },
+    h('h2', { class: 'ph-title', text: 'PayVerse capstone' }),
+    h('p', { class: 'sub', text: 'Twelve levels, each tied to the phase that teaches it. A level counts as done when every acceptance check is ticked and you link the code.' })));
+  CAP_ORDER.forEach(function (id) {
+    const c = CAP[id];
+    const cr = capPeek(id);
+    const ticks = c.crit.filter(function (_, i) { return cr.c[i]; }).length;
+    const prereqDone = c.prereq.every(function (p) { const b = blockInfo(['p', p]); return b.done === b.total; });
+    const prereqProg = c.prereq.map(function (p) { const b = blockInfo(['p', p]); return plabel(p) + ' ' + b.done + '/' + b.total; }).join(', ');
+    const link = h('input', {
+      id: 'cl-' + id, type: 'url', class: 'in', placeholder: 'https://github.com/… repo, branch or pull request', value: cr.link || '', 'aria-label': 'Code link for level ' + c.n,
+      oninput: function (e) { capRec(id).link = e.target.value.trim(); touch('p'); }
+    });
+    const ok = ticks === c.crit.length && /^https?:\/\//i.test(cr.link || '');
+    const card = h('section', { class: 'panel cap' + (cr.d ? ' complete' : '') },
+      h('div', { class: 'cap-head' },
+        h('div', null,
+          h('p', { class: 'eyebrow', text: 'Level ' + c.n + (c.stretch ? ' · stretch' : '') }),
+          h('h3', { text: c.title })),
+        h('div', { class: 'cap-meta' },
+          cr.d ? h('span', { class: 'tag ok', text: 'Done ' + fmtDate(cr.d) }) : (prereqDone ? h('span', { class: 'tag ready', text: 'Ready to build' }) : h('span', { class: 'tag', text: 'Needs ' + prereqProg })),
+          h('span', { class: 'th', text: c.hrs + ' h' }))),
+      bar(cr.d ? 1 : ticks / c.crit.length),
+      h('ul', { class: 'checks' }, c.crit.map(function (txt, i) {
+        const cid = 'ck-' + id + '-' + i;
+        return h('li', null, h('input', { id: cid, type: 'checkbox', checked: !!cr.c[i], onchange: function (e) { const r = capRec(id); r.c[i] = e.target.checked; if (!e.target.checked && r.d) r.d = ''; touch('p'); render(); } }), h('label', { for: cid, text: txt }));
+      })),
+      h('label', { class: 'lab', for: 'cl-' + id }, 'Code link', h('span', { class: 'hint', text: 'Required to complete' })), link,
+      h('div', { class: 'tactions' },
+        cr.d ? h('button', { type: 'button', class: 'btn', onclick: function () { capRec(id).d = ''; touch('p'); render(); } }, 'Reopen')
+          : h('button', { type: 'button', class: 'btn primary', disabled: !ok, onclick: function () { capRec(id).d = todayStr(); touch('p'); render(); } }, 'Mark level complete'),
+        !cr.d && !ok ? h('span', { class: 'meta', text: ticks < c.crit.length ? (c.crit.length - ticks) + ' check' + (c.crit.length - ticks > 1 ? 's' : '') + ' left' : 'Add the code link' }) : null));
+    root.appendChild(card);
+  });
+  return root;
+}
+
+function viewLog() {
+  const root = h('div', { class: 'view' });
+  const t = todayStr();
+  root.appendChild(h('section', { class: 'panel' }, h('h3', null, 'Log a session'), logForm()));
+
+  // last 8 weeks
+  const ws0 = weekStart(t);
+  const weeks = [];
+  for (let i = 7; i >= 0; i--) { const ws = addDays(ws0, -7 * i); const w = weekHours(ws); weeks.push({ ws: ws, h: w.h, p: w.problems }); }
+  const target = S.p.cfg.hpw;
+  const maxv = Math.max(target, Math.max.apply(null, weeks.map(function (w) { return w.h; }))) * 1.1;
+  const chart = h('div', { class: 'wk' },
+    h('div', { class: 'wk-target', style: 'bottom:' + (target / maxv * 100).toFixed(1) + '%' }, h('span', { text: 'Target ' + target + ' h' })),
+    weeks.map(function (w, i) {
+      return h('div', { class: 'wk-col' },
+        h('span', { class: 'wk-val', text: w.h ? fmtH(w.h) : '' }),
+        h('div', { class: 'wk-bar' + (i === 7 ? ' cur' : ''), style: 'height:' + (w.h / maxv * 100).toFixed(1) + '%' }),
+        h('span', { class: 'wk-lab', text: fmtDate(w.ws).replace(/,? \d{4}$/, '') }));
+    }));
+  root.appendChild(h('section', { class: 'panel' }, h('h3', null, 'Hours per week'), h('p', { class: 'sub', text: 'Weeks start on Monday. Hours shown above each bar.' }), chart));
+
+  const list = h('section', { class: 'panel' }, h('h3', null, 'Recent sessions'));
+  const ents = S.l.entries.slice().reverse().slice(0, 40);
+  if (!ents.length) list.appendChild(h('p', { class: 'sub', text: 'Nothing logged yet. Log your first session above and it shows up here.' }));
+  ents.forEach(function (e) {
+    list.appendChild(h('div', { class: 'entry' },
+      h('span', { class: 'ed', text: fmtDate(e.d) }),
+      h('span', { class: 'ek', text: e.k }),
+      h('span', { class: 'en', text: (e.n || '—') + (e.p ? ' · ' + e.p + ' problems' : '') }),
+      h('span', { class: 'em', text: e.m + ' min' }),
+      h('button', { type: 'button', class: 'x', 'aria-label': 'Delete entry', onclick: function () { S.l.entries = S.l.entries.filter(function (z) { return z.id !== e.id; }); touch('l'); render(); } }, '×')));
+  });
+  root.appendChild(list);
+  return root;
+}
+
+function viewData() {
+  const root = h('div', { class: 'view' });
+  root.appendChild(h('section', { class: 'panel' },
+    h('h3', null, 'Where your progress lives'),
+    h('p', { class: 'sub', text: ui.saveState === 'cloud' ? 'Saved to your account and also cached on this device. Open the page on another device and it loads the same progress.' : 'Saved on this device in this browser. If you open the page signed in to Claude, progress also saves to your account.' })));
+
+  root.appendChild(h('section', { class: 'panel' },
+    h('h3', null, 'How completion works'),
+    h('ul', { class: 'rules' },
+      h('li', null, h('strong', { text: 'Done needs evidence. ' }), 'Write what proves it: a repo link, a test name, or the question you answered from memory.'),
+      h('li', null, h('strong', { text: 'Reviews come back. ' }), 'A done topic returns for review after 3, 10, 30 and 90 days. Forgetting resets its cycle.'),
+      h('li', null, h('strong', { text: 'Capstone levels need a link. ' }), 'Tick every acceptance check and link the code.'),
+      h('li', null, h('strong', { text: 'Hours are estimates. ' }), 'Topics default to 1.5 h and labs to 8 to 14 h. The timeline compares them with what you finish.'))));
+
+  const msg = h('p', { class: 'msg ok', id: 'data-msg', role: 'status' });
+  const exp = h('button', {
+    type: 'button', class: 'btn primary', onclick: async function () {
+      try {
+        const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+        if (!dl) { msg.textContent = 'Saving files is not available in this view. Copy the backup text below instead.'; $('data-text').hidden = false; $('data-text').value = JSON.stringify({ p: S.p, l: S.l }); return; }
+        await dl.save({ filename: 'backend-roadmap-progress-' + todayStr() + '.json', data: JSON.stringify({ app: 'backend-roadmap-tracker', v: 1, p: S.p, l: S.l }, null, 1) });
+        msg.textContent = 'Backup saved.';
+      } catch (e) { msg.textContent = e && e.code === 'declined' ? 'Backup cancelled.' : 'Could not save the backup here.'; }
+    }
+  }, 'Export backup (JSON)');
+  const file = h('input', { id: 'imp-file', type: 'file', accept: '.json,application/json', class: 'in', 'aria-label': 'Choose backup file' });
+  const imp = h('button', {
+    type: 'button', class: 'btn', onclick: function () {
+      const f = file.files && file.files[0];
+      if (!f) { msg.textContent = 'Choose a backup file first.'; return; }
+      const rd = new FileReader();
+      rd.onload = function () {
+        try {
+          const d = JSON.parse(rd.result);
+          if (!d || !d.p || typeof d.p.topics !== 'object') throw new Error('bad');
+          ui.confirm = { kind: 'import', data: d };
+          render();
+        } catch (e) { msg.textContent = 'That file is not a backup from this tracker.'; }
+      };
+      rd.readAsText(f);
+    }
+  }, 'Import backup');
+  const ta = h('textarea', { id: 'data-text', class: 'in', rows: '4', hidden: true, readonly: true, 'aria-label': 'Backup text' });
+  root.appendChild(h('section', { class: 'panel' }, h('h3', null, 'Backup'), h('div', { class: 'row' }, exp), h('div', { class: 'row' }, file, imp), ta, msg));
+
+  const danger = h('section', { class: 'panel' }, h('h3', null, 'Reset'));
+  if (ui.confirm) {
+    const c = ui.confirm;
+    danger.appendChild(h('p', { class: 'msg', role: 'alert', text: c.kind === 'import' ? 'Importing replaces all progress and the log on this account with the file. Continue?' : 'This erases every status, note, evidence entry, capstone tick and log entry. It cannot be undone. Continue?' }));
+    danger.appendChild(h('div', { class: 'row' },
+      h('button', {
+        type: 'button', class: 'btn danger', onclick: function () {
+          if (c.kind === 'import') { S.p = normP(c.data.p); S.l = normL(c.data.l); }
+          else { S.p = normP({ cfg: S.p.cfg }); S.l = normL(null); }
+          dirty.p = true; dirty.l = true; touch('p'); touch('l'); ui.confirm = null; ui.open.clear(); render();
+        }
+      }, c.kind === 'import' ? 'Yes, replace everything' : 'Yes, erase everything'),
+      h('button', { type: 'button', class: 'btn', onclick: function () { ui.confirm = null; render(); } }, 'Cancel')));
+  } else {
+    danger.appendChild(h('p', { class: 'sub', text: 'Start over with an empty tracker. Your plan settings stay.' }));
+    danger.appendChild(h('button', { type: 'button', class: 'btn danger', onclick: function () { ui.confirm = { kind: 'reset' }; render(); } }, 'Reset all progress'));
+  }
+  root.appendChild(danger);
+  return root;
+}
+
+/* ===== RENDER ===== */
+function render() {
+  const nav = $('tabs');
+  nav.textContent = '';
+  TABS.forEach(function (tb) {
+    nav.appendChild(h('button', {
+      type: 'button', class: 'tab' + (ui.tab === tb[0] ? ' on' : ''), 'aria-current': ui.tab === tb[0] ? 'page' : null, onclick: function () {
+        ui.tab = tb[0]; ui.msg = '';
+        try { history.replaceState(null, '', '#' + tb[0]); } catch (e) { /* hash unavailable */ }
+        render(); window.scrollTo(0, 0);
+      }
+    }, tb[1]));
+  });
+  const views = { today: viewToday, roadmap: viewRoadmap, timeline: viewTimeline, capstone: viewCapstone, log: viewLog, data: viewData };
+  const main = $('main');
+  main.textContent = '';
+  main.appendChild(views[ui.tab]());
+  setSave(ui.saveState);
+  if (ui.flash) {
+    const el = $('ev-' + ui.flash);
+    if (el) { el.focus(); }
+    ui.flash = null;
+  }
+}
+
+/* ===== BOOT ===== */
+(function boot() {
+  const saved = lsLoad();
+  if (saved) { S.p = normP(saved.p); S.l = normL(saved.l); }
+  else S.p = normP(null);
+  if (!S.p.cfg.start) S.p.cfg.start = nextMonday();
+  try { const hsh = location.hash.replace('#', ''); if (TABS.some(function (x) { return x[0] === hsh; })) ui.tab = hsh; } catch (e) { /* no hash */ }
+  render();
+  initDb();
+})();
+</script>
+
+</body></html>
