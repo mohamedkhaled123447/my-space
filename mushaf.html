@@ -98,6 +98,28 @@ button, select, input { font: inherit; color: inherit; }
 .nav { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
 .nav .mid { display: flex; justify-content: center; }
 
+/* hifz session bar: idle (pick pages + start), running (progress), done (summary) */
+[hidden] { display: none !important; }
+.session {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--ui); border: 1px solid var(--ui-line); border-radius: 10px;
+  padding: 6px 6px 6px 12px; min-height: 46px;
+}
+.session .lbl { font-size: 13px; color: var(--muted); margin-inline-end: auto; }
+.session .lbl b { color: var(--ui-fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--ui-line); border-radius: 8px; background: var(--paper); }
+.stepper button { width: 32px; height: 32px; border: 0; background: none; cursor: pointer; font-size: 17px; line-height: 1; color: var(--ui-fg); }
+.stepper input { width: 2.6em; height: 32px; border: 0; background: none; text-align: center; font-variant-numeric: tabular-nums; outline: none; -moz-appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sbtn { height: 34px; padding: 0 14px; border-radius: 8px; cursor: pointer; font-weight: 500; border: 1px solid var(--btn); background: var(--btn); color: var(--btn-fg); }
+.sbtn.ghost { background: var(--paper); color: var(--ui-fg); border-color: var(--ui-line); }
+.sbtn.ghost:hover { border-color: var(--gold); }
+.sprog { flex: 1 1 100%; order: 3; height: 4px; border-radius: 2px; background: var(--ph); overflow: hidden; margin: 0 6px 2px 0; }
+.sprog span { display: block; height: 100%; width: 0; background: var(--green); border-radius: 2px; transition: width .25s ease; }
+.session.done { border-color: var(--green); }
+.session.done .lbl { color: var(--ui-fg); }
+@media (max-width: 420px) { .session .wide { display: none; } }
+
 /* settings drawer */
 details.settings { position: relative; }
 details.settings summary { list-style: none; }
@@ -312,6 +334,23 @@ main { max-width: 40rem; margin: 16px auto 0; }
       <button class="iconbtn" id="prevPage" type="button" title="Previous page (P)">
         Prev<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
+    </div>
+    <!-- Hifz session. Children carry data-state; only the current state's children are shown. -->
+    <div class="session" id="session" aria-live="polite">
+      <span class="lbl" data-state="idle">Pages<span class="wide"> this session</span></span>
+      <span class="stepper" data-state="idle">
+        <button type="button" id="sLess" aria-label="Fewer pages">−</button>
+        <input id="sTarget" type="number" inputmode="numeric" min="1" max="30" value="5" aria-label="Pages this session">
+        <button type="button" id="sMore" aria-label="More pages">+</button>
+      </span>
+      <button class="sbtn" id="sStart" type="button" data-state="idle">Start session</button>
+
+      <span class="lbl" data-state="running"><b id="sCount">0 / 5</b> pages</span>
+      <button class="sbtn ghost" id="sEnd" type="button" data-state="running">End session</button>
+      <div class="sprog" data-state="running"><span id="sBar"></span></div>
+
+      <span class="lbl" data-state="done" id="sSummary"></span>
+      <button class="sbtn" id="sOk" type="button" data-state="done">OK</button>
     </div>
   </div>
 </header>
@@ -549,7 +588,8 @@ main { max-width: 40rem; margin: 16px auto 0; }
       const target = words[Math.min(cursor, total) - 1].el;
       const r = target.getBoundingClientRect();
       const dockH = document.querySelector(".dock").offsetHeight;
-      if (r.bottom > innerHeight - dockH - 10 || r.top < 160) target.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      const topH = document.querySelector(".top").offsetHeight;
+      if (r.bottom > innerHeight - dockH - 10 || r.top < topH + 10) target.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     }
   }
 
@@ -648,7 +688,71 @@ main { max-width: 40rem; margin: 16px auto 0; }
     }
   }
 
-  el.nextPage.onclick = () => goTo(page + 1);
+  // ---------- hifz session ----------
+  // A session counts each page you leave by going forward (Next, N key, swipe). Prev and the pickers
+  // never count, and a page counts once. Saved in the "mushaf" store so a reload resumes it.
+  // Shape: { start: ms timestamp, target: pages, done: [page numbers] }, or null when none is running.
+  const DEFAULT_TARGET = 5, MAX_TARGET = 30;
+  const sEl = { box: $("session"), target: $("sTarget"), count: $("sCount"), bar: $("sBar"), summary: $("sSummary") };
+  let session = store.get("session", null);
+  if (!session || !Array.isArray(session.done) || !(session.target > 0) || !(session.start > 0)) session = null;
+
+  function clampTarget(v) { return Math.min(MAX_TARGET, Math.max(1, parseInt(v, 10) || DEFAULT_TARGET)); }
+  function fmtDuration(ms) {
+    const min = Math.floor(ms / 60000);
+    if (min < 1) return "under 1 min";
+    const h = Math.floor(min / 60), m = min % 60;
+    return h ? h + " h" + (m ? " " + m + " min" : "") : m + " min";
+  }
+  function showSession(state) {
+    sEl.box.classList.toggle("done", state === "done");
+    sEl.box.querySelectorAll("[data-state]").forEach((n) => { n.hidden = n.dataset.state !== state; });
+    if (state === "running") {
+      sEl.count.textContent = session.done.length + " / " + session.target;
+      sEl.bar.style.width = Math.round((session.done.length / session.target) * 100) + "%";
+    }
+    if (state === "idle") sEl.target.value = DEFAULT_TARGET;
+  }
+  function startSession() {
+    session = { start: Date.now(), target: clampTarget(sEl.target.value), done: [] };
+    store.set("session", session);
+    showSession("running");
+  }
+  function finishSession() {
+    const n = session.done.length, target = session.target;
+    const took = fmtDuration(Date.now() - session.start);
+    const pages = n + " page" + (n === 1 ? "" : "s");
+    sEl.summary.textContent = n >= target
+      ? "Session complete: " + pages + " in " + took
+      : "Session ended: " + n + " of " + target + " pages in " + took;
+    session = null;
+    store.set("session", null);
+    showSession("done");
+  }
+  // Going forward: counts the page being left, ends the session at the target (staying on this page), else turns the page.
+  function forward() {
+    if (page >= TOTAL_PAGES) return;
+    if (session) {
+      if (!session.done.includes(page)) {
+        session.done.push(page);
+        store.set("session", session);
+      }
+      if (session.done.length >= session.target) { finishSession(); return; }
+      showSession("running");
+    }
+    goTo(page + 1);
+  }
+
+  $("sLess").onclick = () => { sEl.target.value = clampTarget(sEl.target.value) - 1 || 1; };
+  $("sMore").onclick = () => { sEl.target.value = Math.min(MAX_TARGET, clampTarget(sEl.target.value) + 1); };
+  sEl.target.addEventListener("change", () => { sEl.target.value = clampTarget(sEl.target.value); });
+  sEl.target.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); startSession(); } });
+  $("sStart").onclick = startSession;
+  $("sEnd").onclick = finishSession;
+  $("sOk").onclick = () => showSession("idle");
+  showSession(session ? "running" : "idle");
+
+  el.nextPage.onclick = forward;
   el.prevPage.onclick = () => goTo(page - 1);
   el.pageForm.addEventListener("submit", (e) => { e.preventDefault(); goTo(el.pageInput.value); el.pageInput.blur(); });
   el.pageInput.addEventListener("change", () => goTo(el.pageInput.value));
@@ -662,7 +766,7 @@ main { max-width: 40rem; margin: 16px auto 0; }
     const map = {
       ArrowLeft: actions.nextWord, ArrowRight: actions.prevWord,
       ArrowDown: actions.nextAyah, ArrowUp: actions.prevAyah, " ": actions.nextAyah,
-      n: () => goTo(page + 1), N: () => goTo(page + 1), p: () => goTo(page - 1), P: () => goTo(page - 1),
+      n: forward, N: forward, p: () => goTo(page - 1), P: () => goTo(page - 1),
     };
     if (map[k]) { e.preventDefault(); map[k](); }
   });
@@ -675,7 +779,7 @@ main { max-width: 40rem; margin: 16px auto 0; }
     if (tx == null) return;
     const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
     tx = ty = null;
-    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) goTo(page + (dx > 0 ? 1 : -1));
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) { if (dx > 0) forward(); else goTo(page - 1); }
   }, { passive: true });
 
   // ---------- settings ----------
