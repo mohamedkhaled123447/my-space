@@ -38,3 +38,4 @@ To move local data over, sign in on the deployed site, then for each key in your
 | DELETE | `/api/state/:key` | Removes a key                          |
 
 Keys used by the pages: `planner`, `worklist`, `recall`, `roadmap`, `mushaf`, `dashboard`.
+`mushaf-local.html` is a copy of the mushaf page that keeps its state in the browser's localStorage instead (key `mushaf-local`), so it works without the server or a login.
